@@ -91,7 +91,6 @@ namespace SlicerConnector
                 {
                     await next();
                 }
-
             });
 
         }
@@ -111,7 +110,7 @@ namespace SlicerConnector
 
                 if (commands.isValid())
                 {
-                    var prusaSlicerBroker = new PrusaSlicerBroker(@"C:\Users\FlorianJasche\Downloads\PrusaSlicer-2.3.0-alpha2+win64-202010241601\PrusaSlicer-2.3.0-alpha2+win64-202010241601\prusa-slicer-console.exe");
+                    var prusaSlicerBroker = new PrusaSlicerBroker(slicerPath);
                     prusaSlicerBroker.DataReceived += async (sender, args) =>
                     {
                         var tmp = Encoding.ASCII.GetBytes(args.Data);
