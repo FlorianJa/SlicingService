@@ -12,6 +12,7 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Configuration.CommandLine;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -21,11 +22,31 @@ namespace SlicerConnector
 {
     public class Startup
     {
+        private string slicerPath;
+
         public Startup(IConfiguration configuration)
         {
             Configuration = configuration;
-        }
+            var tmp = Configuration as ConfigurationRoot;
 
+
+            foreach (var provider in tmp.Providers)
+            {
+                if (provider is CommandLineConfigurationProvider)
+                {
+                    if (((CommandLineConfigurationProvider)provider).TryGet("SlicerPath", out slicerPath))
+                    {
+                        //check if file is there.
+                    }
+                    else
+                    {
+                        //Missing path to slicer. Add Error message/exception.
+                        return;
+                    }
+
+                }
+            }
+        }
         public IConfiguration Configuration { get; }
 
         // This method gets called by the runtime. Use this method to add services to the container.
@@ -42,16 +63,6 @@ namespace SlicerConnector
                 app.UseDeveloperExceptionPage();
             }
 
-            //app.UseRouting();
-
-            //app.UseAuthorization();
-
-            //app.UseEndpoints(endpoints =>
-            //{
-            //    endpoints.MapControllers();
-            //});
-
-
             var webSocketOptions = new WebSocketOptions()
             {
                 KeepAliveInterval = TimeSpan.FromSeconds(120),
@@ -59,7 +70,6 @@ namespace SlicerConnector
             };
 
             app.UseWebSockets(webSocketOptions);
-
 
             app.Use(async (context, next) =>
             {
