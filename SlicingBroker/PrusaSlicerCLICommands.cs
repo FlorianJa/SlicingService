@@ -4,39 +4,80 @@ using System.Linq;
 using System.Threading.Tasks;
 using System.Numerics;
 using System.Text;
+using System.Globalization;
 
 namespace SlicingBroker
 {
     public class PrusaSlicerCLICommands
     {
+        #region Properties
+        [CLICommand("--export-gcode")]
         public bool? ExportGCode { get; set; }
+
+        [CLICommand("--export-obj")]
         public bool? ExportOBJ { get; set; }
+
+        [CLICommand("-s")]
         public bool? Slice { get; set; }
+
+        [CLICommand("--single-isntance")]
         public bool? SingleInstance { get; set; }
+
+        [CLICommand("--repair")]
         public bool? Repair { get; set; }
+
+        [CLICommand("--support-material")]
         public bool? SupportMaterial { get; set; }
 
+        [CLICommand("--rotate")]
         public float? Rotate { get; set; }
+
+        [CLICommand("--rotate-x")] 
         public float? RotateX { get; set; }
+
+        [CLICommand("--rotate-y")] 
         public float? RotateY { get; set; }
+
+        [CLICommand("--scale")] 
         public float? Scale { get; set; }
 
+        [CLICommand("--layer-height")] 
+        public float? LayerHeight { get; set; }
+               
+        [CLICommand("--load")] 
         public string LoadConfigFile { get; set; }
-        public string Output { get; private set; } 
+
+        [CLICommand("-o")] 
+        public string Output { get; private set; }
+
+        [CLICommand("--save")] 
         public string SaveConfigFile { get; set; }
+
+        [CLICommand("")] 
         public string File { get; set; }
 
+        [CLICommand("--loglevel")] 
         public int? Loglevel { get; set; }
-        public int? LayerHeight { get; set; }
+
+        [CLICommand("--fill-density")] 
         public int? FillDensity { get; set; }
 
 
-        public Vector3? ScaleToFit { get; set; }
-        public Vector2? AlignXY { get; set; }
-        public Vector2? CenterXY { get; set; }
+        [CLICommand("--scale-to-fit")] 
+        public SerializableVector3 ScaleToFit { get; set; }
+
+        [CLICommand("--align-xy")] 
+        public SerializableVector2 AlignXY { get; set; }
+
+        [CLICommand("--center")] 
+        public SerializableVector2 Center { get; set; }
+
+        #endregion
 
         public bool isValid()
         {
+#warning Fill with logic!
+
             //check all important parameters
             //align and center needs to be positve
             //check fill between 0 and 100
@@ -50,32 +91,81 @@ namespace SlicingBroker
 
         public override string ToString()
         {
-
-            //ToDo: Add all the other parameters!
-
             StringBuilder commandBuilder = new StringBuilder();
 
-            //actions
+            //get all properties
+            var props = typeof(PrusaSlicerCLICommands).GetProperties();
 
-            if(ExportGCode.HasValue && ExportGCode == true)
+            foreach (var prop in props)
             {
-                commandBuilder.Append("--export-gcode ");
+                if(prop.GetValue(this) != null)
+                {
+                    var CLICommand = prop.GetCustomAttributes(false)[0] as CLICommand;
+
+                    //there could be the rare case that GetProperties gets an property that has no CLICommand attribute -> ignore all of these properties
+                    if (CLICommand != null) 
+                    {
+                        if (prop.PropertyType == typeof(bool?))
+                        {
+                            // Add command only if value is true
+                            if ((bool?)prop.GetValue(this) == true)
+                            {
+                                commandBuilder.Append(CLICommand.GetCommand()); 
+                                commandBuilder.Append(" ");
+                            }
+                        }
+                        else
+                        {
+                            //first add command and add value later
+                            commandBuilder.Append(CLICommand.GetCommand());
+                            commandBuilder.Append(" ");
+
+                            if (prop.PropertyType == typeof(float?))
+                            {
+                                commandBuilder.Append(((float)prop.GetValue(this)).ToString("F", CultureInfo.InvariantCulture));
+                                commandBuilder.Append(" ");
+                            }
+                            else if (prop.PropertyType == typeof(string))
+                            {
+                                commandBuilder.Append((string)prop.GetValue(this));
+                                commandBuilder.Append(" ");
+                            }
+                            else if (prop.PropertyType == typeof(int?))
+                            {
+                                commandBuilder.Append(((int)prop.GetValue(this)).ToString());
+                                commandBuilder.Append(" ");
+                            }
+                            else if (prop.PropertyType == typeof(SerializableVector2))
+                            {
+                                float x, y;
+                                var tmp = (SerializableVector2)prop.GetValue(this);
+                                x = tmp.X;
+                                y = tmp.Y;
+                                commandBuilder.Append(x.ToString("F", CultureInfo.InvariantCulture));
+                                commandBuilder.Append(",");
+                                commandBuilder.Append(y.ToString("F", CultureInfo.InvariantCulture));
+                                commandBuilder.Append(" ");
+
+                            }
+                            else if (prop.PropertyType == typeof(SerializableVector3))
+                            {
+                                float x, y, z;
+                                var tmp = (SerializableVector3)prop.GetValue(this);
+                                x = tmp.X;
+                                y = tmp.Y;
+                                z = tmp.Z;
+                                commandBuilder.Append(x.ToString("F", CultureInfo.InvariantCulture));
+                                commandBuilder.Append(",");
+                                commandBuilder.Append(y.ToString("F", CultureInfo.InvariantCulture));
+                                commandBuilder.Append(",");
+                                commandBuilder.Append(z.ToString("F", CultureInfo.InvariantCulture));
+                                commandBuilder.Append(" ");
+                            }
+                        }
+                    }
+                }
             }
-
-            //transform
-
-
-            if(Scale.HasValue)
-            {
-                commandBuilder.Append("--scale ");
-                commandBuilder.Append(Scale.ToString());
-                commandBuilder.Append(" ");
-            }
-            //options
-
-            //input path/file 
-
-
+            
             return commandBuilder.ToString();
         }
     }

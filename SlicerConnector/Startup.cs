@@ -69,7 +69,7 @@ namespace SlicerConnector
                     {
                         using (WebSocket webSocket = await context.WebSockets.AcceptWebSocketAsync())
                         {
-                            await Echo(context, webSocket);
+                            await HandleWebsocketConnection(context, webSocket);
                         }
                     }
                     else
@@ -87,50 +87,32 @@ namespace SlicerConnector
         }
 
 
-        private async Task Echo(HttpContext context, WebSocket webSocket)
+        private async Task HandleWebsocketConnection(HttpContext context, WebSocket webSocket)
         {
             var buffer = new byte[1024 * 4];
             WebSocketReceiveResult result = await webSocket.ReceiveAsync(new ArraySegment<byte>(buffer), CancellationToken.None);
+
+            while (!result.CloseStatus.HasValue)
+            {
+                var receivedAsJson = Encoding.ASCII.GetString(buffer, 0, result.Count);
+
+                //convert json to object
+                PrusaSlicerCLICommands commands = JsonSerializer.Deserialize<PrusaSlicerCLICommands>(receivedAsJson, new JsonSerializerOptions() { IgnoreNullValues = true });
+
+                if (commands.isValid())
+                {
+                    var prusaSlicerBroker = new PrusaSlicerBroker(@"C:\Users\FlorianJasche\Downloads\PrusaSlicer-2.3.0-alpha2+win64-202010241601\PrusaSlicer-2.3.0-alpha2+win64-202010241601\prusa-slicer-console.exe");
+                    prusaSlicerBroker.DataReceived += async (sender, args) =>
+                    {
+                        var tmp = Encoding.ASCII.GetBytes(args.Data);
+                        await webSocket.SendAsync(new ArraySegment<byte>(tmp, 0, args.Data.Length), result.MessageType, result.EndOfMessage, CancellationToken.None);
+                    };
+                    await prusaSlicerBroker.SliceAsync(commands);
+                }
+                
+                result = await webSocket.ReceiveAsync(new ArraySegment<byte>(buffer), CancellationToken.None);
+            }
             
-            var receivedAsJson = Encoding.ASCII.GetString(buffer,0,result.Count);
-
-            //convert json to object
-            PrusaSlicerCLICommands commands = null; //JsonSerializer.Deserialize<PrusaSlicerCLICommands>(receivedAsJson);
-
-            var prusaSlicerBroker = new PrusaSlicerBroker(@"C:\Users\FlorianJasche\Downloads\PrusaSlicer-2.3.0-alpha2+win64-202010241601\PrusaSlicer-2.3.0-alpha2+win64-202010241601\prusa-slicer-console.exe");
-            prusaSlicerBroker.DataReceived += async (sender, args) => {
-                var tmp = Encoding.ASCII.GetBytes(args.Data);
-                await webSocket.SendAsync(new ArraySegment<byte>(tmp, 0, args.Data.Length), result.MessageType, result.EndOfMessage, CancellationToken.None);
-            };
-
-
-            await prusaSlicerBroker.SliceAsync(commands);
-
-
-            //switch commands & call different functions
-
-
-
-
-            //create parameter for the slicer
-
-            //start the slicer process
-
-            //during slicing, send output of slicer to client
-
-
-
-
-
-
-            //while (!result.CloseStatus.HasValue)
-            //{
-            //    await webSocket.SendAsync(new ArraySegment<byte>(buffer, 0, result.Count), result.MessageType, result.EndOfMessage, CancellationToken.None);
-
-            //    result = await webSocket.ReceiveAsync(new ArraySegment<byte>(buffer), CancellationToken.None);
-            //}
-
-
             await webSocket.CloseAsync(result.CloseStatus.Value, result.CloseStatusDescription, CancellationToken.None);
         }
 
