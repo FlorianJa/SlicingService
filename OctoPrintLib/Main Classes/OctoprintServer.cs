@@ -1,4 +1,3 @@
-using OctoPrintLib.OctoPrintEvents;
 using System;
 using System.Diagnostics;
 using System.IO;
@@ -11,6 +10,7 @@ using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 using OctoPrintLib.Operations;
+using OctoPrintLib.Messages;
 
 namespace OctoPrintLib
 
@@ -111,12 +111,15 @@ namespace OctoPrintLib
                 WebSocketReceiveResult received = await webSocket.ReceiveAsync(new ArraySegment<byte>(buffer), CancellationToken.None);
                 string text = Encoding.UTF8.GetString(buffer, 0, received.Count);
 
-#warning this could cause errors
-                if(text.Last() == '}')//json messages end with }. If the text does not end with } this indicates there is more data (message bigger then buffer)
+                if (text.Last() == '}')//json messages end with }. If the text does not end with } this indicates there is more data (message bigger then buffer)
                 {
                     stringbuilder.Append(text);
-                    HandleWebSocketData(stringbuilder.ToString());
-                    stringbuilder.Clear();
+                    var tmp = stringbuilder.ToString();
+                    if (tmp.Count(c => c == '{') == tmp.Count(c => c == '}'))//there is the rare opertunity that the last } is not the closing } for the first {. In a valid json string are the same amount of { and }
+                    {
+                        HandleWebSocketData(stringbuilder.ToString());
+                        stringbuilder.Clear();
+                    } 
                 }
                 else
                 {
@@ -128,38 +131,64 @@ namespace OctoPrintLib
 
         private void HandleWebSocketData(string data)
         {
-            //JObject obj;
-            //try
-            //{
-            //    obj = JObject.Parse(data);
-            //}
-            //catch
-            //{
-            //    return;
-            //}
-
-            //var connected = obj?.Value<JToken>("connected");
-
             var messageType = GetMessageType(data);
 
             switch (messageType)
             {
                 case MessageType.Connected:
                     {
-                        var tmp = JsonSerializer.Deserialize<WebSocketConnectedMessage>(data, new JsonSerializerOptions() { IgnoreNullValues = true });
+                        try
+                        {
+                            var tmp = JsonSerializer.Deserialize<WebSocketConnectedMessage>(data, new JsonSerializerOptions() { IgnoreNullValues = true });
+                        }
+                        catch (Exception)
+                        {
+
+                            break;
+                        }
                         AuthenticateWebsocketAsync(username, sessionID);
                         break;
                     }
                 case MessageType.History:
                     {
-                        var tmp = JsonSerializer.Deserialize<HistoryMessage>(data, new JsonSerializerOptions() { IgnoreNullValues = true });
+                        try
+                        {
+                            var tmp = JsonSerializer.Deserialize<HistoryMessage>(data, new JsonSerializerOptions() { IgnoreNullValues = true });
+                        }
+                        catch (Exception)
+                        {
+                            
+                        }
                         break;
                     }
                 case MessageType.Event:
-                    break;
+                    {
+                        try
+                        {
+                            //There are a lot of different event with different payloads. We focus on just a few like FileAdded.
+                            var tmp = JsonSerializer.Deserialize<OctoprintEvent>(data, new JsonSerializerOptions() { IgnoreNullValues = true });
+
+                            if(tmp.Event.type == "FileAdded")
+                            {
+                                //do something
+                            }
+                        }
+                        catch (Exception)
+                        {
+
+                        }
+                        break;
+                    }
                 case MessageType.Current:
                     {
-                        var tmp = JsonSerializer.Deserialize<CurrentMessage>(data, new JsonSerializerOptions() { IgnoreNullValues = true });
+                        try
+                        {
+                            var tmp = JsonSerializer.Deserialize<CurrentMessage>(data, new JsonSerializerOptions() { IgnoreNullValues = true });
+                        }
+                        catch (Exception)
+                        {
+
+                        }
                         break;
                     }
                 case MessageType.Unknown:
@@ -167,31 +196,6 @@ namespace OctoPrintLib
                 default:
                     break;
             }
-            //if(connected != null)
-            //{
-            //    var tmp = obj.ToObject<WebSocketConnectedResponse>();
-
-
-            //    var tmp2 = JsonConvert.DeserializeObject<WebSocketConnectedResponse>(data);
-            //}
-
-            //JToken events = obj?.Value<JToken>("event");
-
-            //if (events != null)
-            //{
-            //    string eventName = events.Value<string>("type");
-
-            //    if (eventName == "FileAdded")
-            //    {
-            //        JObject eventpayload = events.Value<JObject>("payload");
-            //        //var file = new OctoprintFile(eventpayload);
-
-            //        //if (file.Type == "stl")
-            //        //{
-            //        //    //Download file and trigger slicing process
-            //        //}
-            //    }
-            //}
         }
 
         private MessageType GetMessageType(string data)
