@@ -46,6 +46,14 @@ namespace SlicerConnector
 
                 }
             }
+
+
+            var os = new OctoPrintLib.OctoprintServer("http://localhost/", "F4E8066C291F479A9F4CA65B27D7FA35");
+            var x = os.GeneralOperations.Login();
+            var y = os.FileOperations.GetFilesAsync().GetAwaiter().GetResult();
+            var z = os.FileOperations.GetFileInfoAsync("local", "3DBenchy1_0.2mm_PLA_MINI_1h31m.gcode").GetAwaiter().GetResult();
+            //var xx = os.FileOperations.UploadFileAsync("3DBenchy.stl", "3dbenchy.stl").GetAwaiter().GetResult();
+            var xxx = os.FileOperations.CreateFolderAsync("newFolder").GetAwaiter().GetResult();
         }
         public IConfiguration Configuration { get; }
 

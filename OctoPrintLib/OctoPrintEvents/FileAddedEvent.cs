@@ -22,7 +22,7 @@ namespace OctoPrintLib.OctoPrintEvents
         {
             this.Name = name;
             this.Payload = payload;
-            this.OctoFile = new OctoprintFile(payload);
+            //this.OctoFile = new OctoprintFile(payload);
 
         }
 
