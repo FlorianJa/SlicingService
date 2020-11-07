@@ -115,7 +115,7 @@ namespace OctoPrintLib
                 {
                     stringbuilder.Append(text);
                     var tmp = stringbuilder.ToString();
-                    if (tmp.Count(c => c == '{') == tmp.Count(c => c == '}'))//there is the rare opertunity that the last } is not the closing } for the first {. In a valid json string are the same amount of { and }
+                    if (tmp.Count(c => c == '{') == tmp.Count(c => c == '}'))//there is the rare opportunity that the last } is not the closing } for the first {. In a valid json string are the same amount of { and }
                     {
                         HandleWebSocketData(stringbuilder.ToString());
                         stringbuilder.Clear();
