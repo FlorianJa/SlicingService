@@ -36,6 +36,9 @@ namespace SlicerConnector
         /// </summary>
         private string OcotoprintApplicationKey = "F4E8066C291F479A9F4CA65B27D7FA35";
 
+
+        private string DownloadPath = @"D:\Downloads\";
+
         public Startup(IConfiguration configuration)
         {
             Configuration = configuration;
@@ -73,7 +76,7 @@ namespace SlicerConnector
             if(e.Payload.type[0] == "model")
             {
 
-                var res = await os.FileOperations.DownloadFileAsync(e.Payload.storage + "/" + e.Payload.path, e.Payload.name);
+                var res = await os.FileOperations.DownloadFileAsync(e.Payload.storage + "/" + e.Payload.path, DownloadPath + e.Payload.name);
             }
         }
         
