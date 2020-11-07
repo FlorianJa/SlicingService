@@ -43,7 +43,7 @@ namespace OctoPrintLib
         /// </summary>
         public int WebSocketBufferSize = 4096;
 
-        public EventHandler<FileAddedEventArgs> FileAdded;
+        public event EventHandler<FileAddedEventArgs> FileAdded;
 
         public OctoprintFileOperation FileOperations { get; private set; }
 

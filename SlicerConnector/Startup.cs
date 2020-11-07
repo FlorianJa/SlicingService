@@ -61,10 +61,23 @@ namespace SlicerConnector
 
 
             os = new OctoprintServer(OctoPrintDomainNameOrIP, OcotoprintApplicationKey);
+            os.FileAdded += Os_FileAdded;
             var x = os.GeneralOperations.Login();
             os.StartWebsocketAsync(x.name, x.session);
 
+
         }
+
+        private async void Os_FileAdded(object sender, FileAddedEventArgs e)
+        {
+            if(e.Payload.type[0] == "model")
+            {
+
+                var res = await os.FileOperations.DownloadFileAsync(e.Payload.storage + "/" + e.Payload.path, e.Payload.name);
+            }
+        }
+        
+
         public IConfiguration Configuration { get; }
 
         // This method gets called by the runtime. Use this method to add services to the container.

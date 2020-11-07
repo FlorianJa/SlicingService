@@ -23,6 +23,33 @@ namespace OctoPrintLib.Operations
         {
         }
 
+
+        /// <summary>
+        /// Downloads a file from Octoprint
+        /// </summary>
+        /// <param name="remoteLocation">Localtion of file on Octoprint (location without base URL)</param>
+        /// <param name="localDownloadPath">Full path (with</param>
+        public async Task<bool> DownloadFileAsync(string remoteLocation, string localDownloadPath)
+        {
+            using (WebClient webclient = new WebClient())
+            {
+
+                webclient.Headers.Add("X-API-Key", server.ApplicationKey);
+
+                try
+                {
+                    var str = "http://" + server.DomainNmaeOrIp + "/downloads/files/" + remoteLocation;
+                    await webclient.DownloadFileTaskAsync(new Uri(str), localDownloadPath);
+                    //SetDownloadedFileLocalInformation(downloadPath);
+                }
+                catch (Exception e)
+                {
+                    return false;
+                }
+
+                return true;
+            }
+        }
         /// <summary>
         /// Gets all the files on the Server
         /// </summary>
