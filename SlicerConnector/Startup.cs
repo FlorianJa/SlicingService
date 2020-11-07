@@ -16,6 +16,7 @@ using Microsoft.Extensions.Configuration.CommandLine;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using OctoPrintLib;
 using SlicingBroker;
 
 namespace SlicerConnector
@@ -23,6 +24,17 @@ namespace SlicerConnector
     public class Startup
     {
         private string slicerPath;
+        private OctoprintServer os;
+
+        /// <summary>
+        /// Domain name or IP of the OctoprintServer. Do not add protocol like http:// or https://. If a different Port than 80 is needed, specify it by :PORTNUMBER
+        /// </summary>
+        private string OctoPrintDomainNameOrIP = "localhost";
+
+        /// <summary>
+        /// Application key for accessing th ocotprint
+        /// </summary>
+        private string OcotoprintApplicationKey = "F4E8066C291F479A9F4CA65B27D7FA35";
 
         public Startup(IConfiguration configuration)
         {
@@ -48,12 +60,10 @@ namespace SlicerConnector
             }
 
 
-            var os = new OctoPrintLib.OctoprintServer("http://localhost/", "F4E8066C291F479A9F4CA65B27D7FA35");
+            os = new OctoprintServer(OctoPrintDomainNameOrIP, OcotoprintApplicationKey);
             var x = os.GeneralOperations.Login();
-            var y = os.FileOperations.GetFilesAsync().GetAwaiter().GetResult();
-            var z = os.FileOperations.GetFileInfoAsync("local", "3DBenchy1_0.2mm_PLA_MINI_1h31m.gcode").GetAwaiter().GetResult();
-            //var xx = os.FileOperations.UploadFileAsync("3DBenchy.stl", "3dbenchy.stl").GetAwaiter().GetResult();
-            var xxx = os.FileOperations.CreateFolderAsync("newFolder").GetAwaiter().GetResult();
+            os.StartWebsocketAsync(x.name, x.session);
+
         }
         public IConfiguration Configuration { get; }
 

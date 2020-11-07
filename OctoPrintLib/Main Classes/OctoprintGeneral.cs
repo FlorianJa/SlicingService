@@ -5,7 +5,7 @@ using System.Collections.Generic;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace OctoPrintLib
+namespace OctoPrintLib.Operations
 {
     public class OctoprintGeneral: OctoprintConnection
     {

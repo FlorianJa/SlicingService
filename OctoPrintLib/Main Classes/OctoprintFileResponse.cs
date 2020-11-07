@@ -2,7 +2,8 @@
 using System.Collections.Generic;
 using Newtonsoft.Json.Linq;
 
-namespace OctoPrintLib
+
+namespace OctoPrintLib.File
 {
     public class OctoprintFileResponse
     {

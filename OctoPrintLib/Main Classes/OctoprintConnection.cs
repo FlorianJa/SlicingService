@@ -33,7 +33,7 @@ namespace OctoPrintLib
             using (WebClient wc = new WebClient())
             {
                 wc.Headers.Add("X-Api-Key", server.ApplicationKey);
-                Stream downStream = await wc.OpenReadTaskAsync(server.BaseURL + location);
+                Stream downStream = await wc.OpenReadTaskAsync("http://" + server.DomainNmaeOrIp + "/" + location);
                 using (StreamReader sr = new StreamReader(downStream))
                 {
                     strResponseValue = await sr.ReadToEndAsync();
@@ -53,7 +53,7 @@ namespace OctoPrintLib
             using (WebClient wc = new WebClient())
             {
                 wc.Headers.Add("X-Api-Key", server.ApplicationKey);
-                return await wc.UploadStringTaskAsync(server.BaseURL + location, arguments);
+                return await wc.UploadStringTaskAsync("http://" + server.DomainNmaeOrIp + "/" + location, arguments);
             }
         }
 
@@ -68,7 +68,7 @@ namespace OctoPrintLib
             string strResponseValue = string.Empty;
             String argumentString = string.Empty;
             argumentString = JsonConvert.SerializeObject(arguments);
-            HttpWebRequest request = WebRequest.CreateHttp(server.BaseURL + location);// + "?apikey=" + apiKey);
+            HttpWebRequest request = WebRequest.CreateHttp("http://" + server.DomainNmaeOrIp +"/"+ location);// + "?apikey=" + apiKey);
             request.Method = "POST";
             request.Headers["X-Api-Key"] = server.ApplicationKey;
             request.ContentType = "application/json";
@@ -94,7 +94,7 @@ namespace OctoPrintLib
         protected async Task<string> DeleteAsync(string location)
         {
             string strResponseValue = string.Empty;
-            HttpWebRequest request = WebRequest.CreateHttp(server.BaseURL + location);
+            HttpWebRequest request = WebRequest.CreateHttp("http://" + server.DomainNmaeOrIp + "/" + location);
             request.Method = "DELETE";
             request.Headers["X-Api-Key"] = server.ApplicationKey;
             HttpWebResponse httpResponse;
@@ -136,7 +136,7 @@ namespace OctoPrintLib
             var headers = httpClient.DefaultRequestHeaders;
 
             headers.Add("X-Api-Key", server.ApplicationKey);
-            Uri requestUri = new Uri(server.BaseURL + location);
+            Uri requestUri = new Uri("http://" + server.DomainNmaeOrIp + "/" + location);
 
             MultipartFormDataContent multipartContent = new MultipartFormDataContent();
             multipartContent.Add(new StreamContent(new MemoryStream(fileData)), "file", fileName);

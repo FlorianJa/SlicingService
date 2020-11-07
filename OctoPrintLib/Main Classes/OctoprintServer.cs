@@ -1,13 +1,17 @@
-using Newtonsoft.Json.Linq;
 using OctoPrintLib.OctoPrintEvents;
 using System;
 using System.Diagnostics;
 using System.IO;
+using System.Linq;
 using System.Net;
 using System.Net.Http;
 using System.Net.WebSockets;
+using System.Text;
+using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
+using OctoPrintLib.Operations;
+using OctoPrintLib.History;
 
 namespace OctoPrintLib
 
@@ -20,7 +24,7 @@ namespace OctoPrintLib
         /// <summary>
         /// The base URL like https://192.168.1.2/
         /// </summary>
-        public string BaseURL { get; private set; }
+        public string DomainNmaeOrIp { get; private set; }
 
         /// <summary>
         /// The end point Api Key like "ABCDE12345"
@@ -30,7 +34,7 @@ namespace OctoPrintLib
         /// <summary>
         /// The Websocket Client
         /// </summary>
-        ClientWebSocket WebSocket { get; set; }
+        private ClientWebSocket webSocket { get; set; }
         /// <summary>
         /// Defines if the WebsocketClient is listening and the Tread is running
         /// </summary>
@@ -45,6 +49,10 @@ namespace OctoPrintLib
 
         public OctoprintGeneral GeneralOperations { get; private set; }
 
+        private string username;
+        
+        private string sessionID;
+
         /// <summary>
         /// Creates a <see cref="T:OctoprintClient.OctoprintConnection"/> 
         /// </summary>
@@ -52,7 +60,7 @@ namespace OctoPrintLib
         /// <param name="aK">The Api Key of the User account you want to use. You can get this in the user settings</param>
         public OctoprintServer(string baseURL, string aK)
         {
-            BaseURL = baseURL;
+            DomainNmaeOrIp = baseURL;
             ApplicationKey = aK;
             FileOperations = new OctoprintFileOperation(this);
             GeneralOperations = new OctoprintGeneral(this);
@@ -62,70 +70,146 @@ namespace OctoPrintLib
         /// <summary>
         /// Starts the Websocket Thread.
         /// </summary>
-        public async Task WebsocketStartAsync()
+        public async Task StartWebsocketAsync(string user, string sessionID)
         {
             if (!listening)
             {
                 listening = true;
+                this.username = user;
+                this.sessionID = sessionID;
                 await ConnectWebsocket();
-                await Task.Run(WebsocketSyncAsync);
+                Task.Run(WebsocketDataReceiverHandler);
             }
         }
 
         private async Task ConnectWebsocket()
         {
             var canceltoken = CancellationToken.None;
-            WebSocket = new ClientWebSocket();
-            await WebSocket.ConnectAsync(GetWebsocketURI(),
+            webSocket = new ClientWebSocket();
+            await webSocket.ConnectAsync(GetWebsocketURI(),
                 canceltoken);
+        }
+
+        private async Task AuthenticateWebsocketAsync(string user, string sessionID)
+        {
+            
+            var json = JsonSerializer.Serialize(new WebsocketAuthMessage() { auth = user + ":" + sessionID });
+            var tmp = Encoding.ASCII.GetBytes(json);
+            await webSocket.SendAsync(new ArraySegment<byte>(tmp, 0, json.Length), WebSocketMessageType.Text, true, CancellationToken.None);
         }
 
         private Uri GetWebsocketURI()
         {
-            return new Uri("ws://" + BaseURL.Replace("https://", "").Replace("http://", "") + "sockjs/websocket");
+            return new Uri("ws://" + DomainNmaeOrIp + "/sockjs/websocket");
         }
 
-        private async Task WebsocketSyncAsync()
+        private async Task WebsocketDataReceiverHandler()
         {
             var buffer = new byte[8096];
-            while (!WebSocket.CloseStatus.HasValue && listening)
+            StringBuilder stringbuilder = new StringBuilder();
+            while (!webSocket.CloseStatus.HasValue && listening)
             {
-                WebSocketReceiveResult received = await WebSocket.ReceiveAsync(new ArraySegment<byte>(buffer), CancellationToken.None);
-                string text = System.Text.Encoding.UTF8.GetString(buffer, 0, received.Count);
-                HandleWebSocketData(text);
+                WebSocketReceiveResult received = await webSocket.ReceiveAsync(new ArraySegment<byte>(buffer), CancellationToken.None);
+                string text = Encoding.UTF8.GetString(buffer, 0, received.Count);
+
+#warning this could cause errors
+                if(text.Last() == '}')//json messages end with }. If the text does not end with } this indicates there is more data (message bigger then buffer)
+                {
+                    stringbuilder.Append(text);
+                    HandleWebSocketData(stringbuilder.ToString());
+                    stringbuilder.Clear();
+                }
+                else
+                {
+                    stringbuilder.Append(text);
+                }
+
             }
         }
 
         private void HandleWebSocketData(string data)
         {
-            JObject obj;
-            try
+            //JObject obj;
+            //try
+            //{
+            //    obj = JObject.Parse(data);
+            //}
+            //catch
+            //{
+            //    return;
+            //}
+
+            //var connected = obj?.Value<JToken>("connected");
+
+            var messageType = GetMessageType(data);
+
+            switch (messageType)
             {
-                obj = JObject.Parse(data);
+                case MessageType.Connected:
+                    {
+                        var tmp = JsonSerializer.Deserialize<WebSocketConnectedResponse>(data, new JsonSerializerOptions() { IgnoreNullValues = true });
+                        AuthenticateWebsocketAsync(username, sessionID);
+                        break;
+                    }
+                case MessageType.History:
+                    {
+                        var tmp = JsonSerializer.Deserialize<HistoryResponse>(data, new JsonSerializerOptions() { IgnoreNullValues = true });
+                        break;
+                    }
+                case MessageType.Event:
+                    break;
+                case MessageType.Unknown:
+                    break;
+                default:
+                    break;
             }
-            catch
-            {
-                return;
-            }
+            //if(connected != null)
+            //{
+            //    var tmp = obj.ToObject<WebSocketConnectedResponse>();
 
-            JToken events = obj?.Value<JToken>("event");
 
-            if (events != null)
-            {
-                string eventName = events.Value<string>("type");
+            //    var tmp2 = JsonConvert.DeserializeObject<WebSocketConnectedResponse>(data);
+            //}
 
-                if (eventName == "FileAdded")
-                {
-                    JObject eventpayload = events.Value<JObject>("payload");
-                    //var file = new OctoprintFile(eventpayload);
+            //JToken events = obj?.Value<JToken>("event");
 
-                    //if (file.Type == "stl")
-                    //{
-                    //    //Download file and trigger slicing process
-                    //}
-                }
-            }
+            //if (events != null)
+            //{
+            //    string eventName = events.Value<string>("type");
+
+            //    if (eventName == "FileAdded")
+            //    {
+            //        JObject eventpayload = events.Value<JObject>("payload");
+            //        //var file = new OctoprintFile(eventpayload);
+
+            //        //if (file.Type == "stl")
+            //        //{
+            //        //    //Download file and trigger slicing process
+            //        //}
+            //    }
+            //}
         }
 
+        private MessageType GetMessageType(string data)
+        {
+            //Messages start with {"MESSAGETYPE":  -> start index: 2, length: index of : minus 3
+            var type = data.Substring(2, data.IndexOf(':') - 3);
+
+            switch (type)
+            {
+                case "connected": return MessageType.Connected;
+                case "event": return MessageType.Event;
+                case "history": return MessageType.History;
+                default: return MessageType.Unknown;
+            }
+        }
+    }
+
+    public enum MessageType
+    {
+        Connected,
+        Event,
+        History,
+        Unknown
     }
 }

@@ -6,8 +6,9 @@ using System.Text;
 using System.Threading.Tasks;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
+using OctoPrintLib.File;
 
-namespace OctoPrintLib
+namespace OctoPrintLib.Operations
 {
     /// <summary>
     /// Tracks Files, can delete, upload and slice.
