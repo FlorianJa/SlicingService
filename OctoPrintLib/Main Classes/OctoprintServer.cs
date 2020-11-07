@@ -43,6 +43,7 @@ namespace OctoPrintLib
         /// </summary>
         public int WebSocketBufferSize = 4096;
 
+        public EventHandler<FileAddedEventArgs> FileAdded;
 
         public OctoprintFileOperation FileOperations { get; private set; }
 
@@ -170,7 +171,7 @@ namespace OctoPrintLib
 
                             if(tmp.Event.type == "FileAdded")
                             {
-                                //do something
+                                FileAdded?.Invoke(this, new FileAddedEventArgs(tmp.Event.payload));
                             }
                         }
                         catch (Exception)
