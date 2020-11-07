@@ -147,17 +147,22 @@ namespace OctoPrintLib
             {
                 case MessageType.Connected:
                     {
-                        var tmp = JsonSerializer.Deserialize<WebSocketConnectedResponse>(data, new JsonSerializerOptions() { IgnoreNullValues = true });
+                        var tmp = JsonSerializer.Deserialize<WebSocketConnectedMessage>(data, new JsonSerializerOptions() { IgnoreNullValues = true });
                         AuthenticateWebsocketAsync(username, sessionID);
                         break;
                     }
                 case MessageType.History:
                     {
-                        var tmp = JsonSerializer.Deserialize<HistoryResponse>(data, new JsonSerializerOptions() { IgnoreNullValues = true });
+                        var tmp = JsonSerializer.Deserialize<HistoryMessage>(data, new JsonSerializerOptions() { IgnoreNullValues = true });
                         break;
                     }
                 case MessageType.Event:
                     break;
+                case MessageType.Current:
+                    {
+                        var tmp = JsonSerializer.Deserialize<CurrentMessage>(data, new JsonSerializerOptions() { IgnoreNullValues = true });
+                        break;
+                    }
                 case MessageType.Unknown:
                     break;
                 default:
@@ -200,6 +205,7 @@ namespace OctoPrintLib
                 case "connected": return MessageType.Connected;
                 case "event": return MessageType.Event;
                 case "history": return MessageType.History;
+                case "current":return MessageType.Current;
                 default: return MessageType.Unknown;
             }
         }
@@ -210,6 +216,7 @@ namespace OctoPrintLib
         Connected,
         Event,
         History,
+        Current,
         Unknown
     }
 }

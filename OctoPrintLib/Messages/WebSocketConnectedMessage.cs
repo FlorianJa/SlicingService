@@ -28,7 +28,7 @@ namespace OctoPrintLib
         public List<Permission> permissions { get; set; }
     }
 
-    public class WebSocketConnectedResponse
+    public class WebSocketConnectedMessage
     {
         public Connected connected { get; set; }
     }

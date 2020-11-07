@@ -2,8 +2,8 @@
 {
     public class Filament
     {
-        public object length { get; set; }
-        public object volume { get; set; }
+        public int? length { get; set; }
+        public float? volume { get; set; }
     }
 
     
