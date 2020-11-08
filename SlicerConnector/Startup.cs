@@ -67,8 +67,6 @@ namespace SlicerConnector
             os.FileAdded += Os_FileAdded;
             var x = os.GeneralOperations.Login();
             os.StartWebsocketAsync(x.name, x.session);
-
-
         }
 
         private async void Os_FileAdded(object sender, FileAddedEventArgs e)
@@ -77,6 +75,11 @@ namespace SlicerConnector
             {
 
                 var res = await os.FileOperations.DownloadFileAsync(e.Payload.storage + "/" + e.Payload.path, DownloadPath + e.Payload.name);
+
+                if(res)
+                {
+                    //start slicing
+                }
             }
         }
         

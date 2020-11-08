@@ -151,23 +151,12 @@ namespace OctoPrintLib.Operations
         /// Creates a folder, if a subfolder should be created, create it with slashes and the path before it.
         /// </summary>
         /// <returns>The Http Result</returns>
-        /// <param name="path">The Path of the Folder.</param>
+        /// <param name="path">The Path of the Folder including the new folder name.</param>
         public async Task<string> CreateFolderAsync(string path)
         {
             string foldername = path.Split('/')[path.Split('/').Length - 1];
             path = path.Substring(0, path.Length - foldername.Length);
-            string packagestring = "" +
-                "--{0}\r\n" +
-                "Content-Disposition: form-data; name=\"foldername\";\r\n" +
-                "\r\n" +
-                foldername + "\r\n" +
-                "--{0}--\r\n" +
-                "Content-Disposition: form-data; name=\"path\"\r\n" +
-                "\r\n" +
-                path + "\r\n" +
-                "--{0}--\r\n";
-
-            return await PostMultipartAsync(Encoding.ASCII.GetBytes(packagestring), "newfolder" ,"/api/files/local");
+            return await PostMultipartFolderAsync("api/files/local", foldername,path);
 
         }
 
