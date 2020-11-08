@@ -63,6 +63,7 @@ namespace GcodeToMesh
                     Parallel.ForEach(createdMeshes, (currentMesh) => simplify(currentMesh));
                     working = false;
                     ZipMeshes();
+                    DeleteGcodeFiles();
                     MeshGenrerated?.Invoke(this, true);
                     meshCreatorInputQueue = null;
                     createdMeshes = null;
@@ -72,6 +73,14 @@ namespace GcodeToMesh
             else
             {
                 MeshGenrerated?.Invoke(this, false);
+            }
+        }
+
+        private void DeleteGcodeFiles()
+        {
+            foreach (var file in fileNames)
+            {
+                File.Delete(file);
             }
         }
 
@@ -93,7 +102,11 @@ namespace GcodeToMesh
 
             //Write the mesh to disk again
             mesh.name = name;
-            File.WriteAllBytes(FolderToExport + name + ".mesh", MeshSerializer.SerializeMesh(mesh));// GOAAAL
+
+            var filename = FolderToExport + modelName + " " + name + ".mesh";
+            fileNames.Add(filename);
+
+            File.WriteAllBytes(filename, MeshSerializer.SerializeMesh(mesh));// GOAAAL
 
         }
 
