@@ -151,30 +151,6 @@ namespace OctoPrintLib
             }
             return responsebody;
         }
-
-        protected async Task<string> PostMultipartFolderAsync(string location, string foldername, string path)
-        {
-            var httpClient = new HttpClient();
-            var headers = httpClient.DefaultRequestHeaders;
-
-            headers.Add("X-Api-Key", server.ApplicationKey);
-            Uri requestUri = new Uri("http://" + server.DomainNmaeOrIp + "/" + location);
-
-            MultipartFormDataContent multipartContent = new MultipartFormDataContent();
-            multipartContent.Add(new StringContent(foldername), "foldername");
-            multipartContent.Add(new StringContent(path), "path");
-            string responsebody;
-            try
-            {
-                //Send the GET request
-                var response = await httpClient.PostAsync(requestUri, multipartContent);
-                responsebody = await response.Content.ReadAsStringAsync();
-            }
-            catch (Exception ex)
-            {
-                responsebody = "Error: " + ex.HResult.ToString("X") + " Message: " + ex.Message;
-            }
-            return responsebody;
-        }
+               
     }
 }
