@@ -11,7 +11,7 @@ namespace SlicingBroker
 {
     public class PrusaSlicerCLICommands
     {
-        public static PrusaSlicerCLICommands Default { get { return new PrusaSlicerCLICommands() { ExportGCode = true, SupportMaterial = false, LayerHeight = 0.2f, FillDensity = 0.5f}; } }
+        public static PrusaSlicerCLICommands Default { get { return new PrusaSlicerCLICommands() { ExportGCode = true, SupportMaterial = false, LayerHeight = 0.2f, FillDensity = 0.5f, GcodeComments = true, Loglevel = 3}; } }
 
         #region Properties
         [CLICommand("--export-gcode")]
@@ -72,6 +72,8 @@ namespace SlicingBroker
         [CLICommand("--center")] 
         public SerializableVector2 Center { get; set; }
 
+        [CLICommand("--gcode-comments")]
+        public bool? GcodeComments { get; set; }
 
         [CLICommand("")]
         public string File { get; set; }

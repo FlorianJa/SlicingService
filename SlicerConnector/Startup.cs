@@ -8,6 +8,7 @@ using System.Text;
 using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
+using GcodeToMesh;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
@@ -106,7 +107,7 @@ namespace SlicerConnector
         private async void PrusaSlicerBroker_FileSliced(object sender, FileSlicedArgs e)
         {
             await UploadGCodeAsync(e.SlicedFilePath);
-            GenerateMeshFromGcode();
+            GenerateMeshFromGcode(e.SlicedFilePath);
         }
 
 
@@ -116,10 +117,18 @@ namespace SlicerConnector
 
         }
 
-        private void GenerateMeshFromGcode()
+        private void GenerateMeshFromGcode(string slicedFilePath)
         {
-            throw new NotImplementedException();
+            var gcodeAnalyser = new GcodeAnalyser();
+            gcodeAnalyser.MeshGenrerated += GcodeAnalyser_MeshGenrerated;
+            gcodeAnalyser.GenerateMeshFromGcode(slicedFilePath, @"D:\Downloads\Meshes\");
         }
+
+        private void GcodeAnalyser_MeshGenrerated(object sender, bool e)
+        {
+            
+        }
+
         public IConfiguration Configuration { get; }
 
         // This method gets called by the runtime. Use this method to add services to the container.
