@@ -6,6 +6,8 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
+using System.IO.Compression;
+using System.IO.Enumeration;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -24,7 +26,10 @@ namespace GcodeToMesh
         public float meshsimplifyquality = 1f;
 
         public string FolderToExport { get; private set; }
+        public string modelName { get; private set; }
+
         private bool working = false;
+        private List<string> fileNames;
 
         public event EventHandler<bool> MeshGenrerated;
 
@@ -32,6 +37,8 @@ namespace GcodeToMesh
         {
             if (!working)
             {
+                fileNames = new List<string>();
+                modelName = Path.GetFileNameWithoutExtension(path);
                 working = true;
                 FolderToExport = ExportPath;
                 Task.Run(() => ReadGcodeFile(path));
@@ -55,7 +62,11 @@ namespace GcodeToMesh
 
                     Parallel.ForEach(createdMeshes, (currentMesh) => simplify(currentMesh));
                     working = false;
+                    ZipMeshes();
                     MeshGenrerated?.Invoke(this, true);
+                    meshCreatorInputQueue = null;
+                    createdMeshes = null;
+                    fileNames = null;
                 });
             }
             else
@@ -116,11 +127,24 @@ namespace GcodeToMesh
                 sb.Append((mesh.Indices[i] + 1) + " " + (mesh.Indices[i + 1] + 1) + " " + (mesh.Indices[i + 2] + 1));
                 sb.Append(Environment.NewLine);
             }
-
-            System.IO.File.WriteAllText(FolderToExport + name + ".obj", sb.ToString());
+            var filename = FolderToExport + modelName + " " + name + ".obj";
+            fileNames.Add(filename);
+            System.IO.File.WriteAllText(filename, sb.ToString());
 
             //put everthing in one zip file
+            
+        }
 
+        private void ZipMeshes()
+        {
+            using (ZipArchive archive = ZipFile.Open(Path.Combine(FolderToExport, modelName + ".zip"), ZipArchiveMode.Create))
+            {
+                foreach (var file in fileNames)
+                {
+                    archive.CreateEntryFromFile(file, Path.GetFileName(file));
+                }
+                
+            }
         }
 
         internal void CreateMesh(MeshCreatorInput input)
@@ -274,6 +298,10 @@ namespace GcodeToMesh
             }
 
             fileRead = true;
+            tmpmove.Clear();
+            tmpmove = null;
+            meshnames.Clear();
+            meshnames = null;
         }
 
         private static string ExtractMeshName(int layernum, string line)
