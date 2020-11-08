@@ -7,7 +7,7 @@ namespace SlicingBroker
     {
         string SlicerPath { get; }
 
-        Task SliceAsync(PrusaSlicerCLICommands arguments, string outputPath="");
+        Task SliceAsync(PrusaSlicerCLICommands arguments);
 
     }
 }

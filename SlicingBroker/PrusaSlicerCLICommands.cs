@@ -5,11 +5,14 @@ using System.Threading.Tasks;
 using System.Numerics;
 using System.Text;
 using System.Globalization;
+using System.Runtime.CompilerServices;
 
 namespace SlicingBroker
 {
     public class PrusaSlicerCLICommands
     {
+        public static PrusaSlicerCLICommands Default { get { return new PrusaSlicerCLICommands() { ExportGCode = true, SupportMaterial = false, LayerHeight = 0.2f, FillDensity = 0.5f}; } }
+
         #region Properties
         [CLICommand("--export-gcode")]
         public bool? ExportGCode { get; set; }
@@ -48,19 +51,16 @@ namespace SlicingBroker
         public string LoadConfigFile { get; set; }
 
         [CLICommand("-o")] 
-        public string Output { get; private set; }
+        public string Output { get; set; }
 
         [CLICommand("--save")] 
         public string SaveConfigFile { get; set; }
-
-        [CLICommand("")] 
-        public string File { get; set; }
 
         [CLICommand("--loglevel")] 
         public int? Loglevel { get; set; }
 
         [CLICommand("--fill-density")] 
-        public int? FillDensity { get; set; }
+        public float? FillDensity { get; set; }
 
 
         [CLICommand("--scale-to-fit")] 
@@ -72,6 +72,9 @@ namespace SlicingBroker
         [CLICommand("--center")] 
         public SerializableVector2 Center { get; set; }
 
+
+        [CLICommand("")]
+        public string File { get; set; }
         #endregion
 
         public bool isValid()
@@ -100,66 +103,70 @@ namespace SlicingBroker
             {
                 if(prop.GetValue(this) != null)
                 {
-                    var CLICommand = prop.GetCustomAttributes(false)[0] as CLICommand;
+                    var attributes = prop.GetCustomAttributes(false);
+                    if(attributes.Length > 0)
+                    { 
+                        var CLICommand = attributes.First() as CLICommand;
 
-                    //there could be the rare case that GetProperties gets an property that has no CLICommand attribute -> ignore all of these properties
-                    if (CLICommand != null) 
-                    {
-                        if (prop.PropertyType == typeof(bool?))
+                        //there could be the rare case that GetProperties gets an property that has no CLICommand attribute -> ignore all of these properties
+                        if (CLICommand != null)
                         {
-                            // Add command only if value is true
-                            if ((bool?)prop.GetValue(this) == true)
+                            if (prop.PropertyType == typeof(bool?))
                             {
-                                commandBuilder.Append(CLICommand.GetCommand()); 
-                                commandBuilder.Append(" ");
+                                // Add command only if value is true
+                                if ((bool?)prop.GetValue(this) == true)
+                                {
+                                    commandBuilder.Append(CLICommand.GetCommand());
+                                    commandBuilder.Append(" ");
+                                }
                             }
-                        }
-                        else
-                        {
-                            //first add command and add value later
-                            commandBuilder.Append(CLICommand.GetCommand());
-                            commandBuilder.Append(" ");
-
-                            if (prop.PropertyType == typeof(float?))
+                            else
                             {
-                                commandBuilder.Append(((float)prop.GetValue(this)).ToString("F", CultureInfo.InvariantCulture));
-                                commandBuilder.Append(" ");
-                            }
-                            else if (prop.PropertyType == typeof(string))
-                            {
-                                commandBuilder.Append((string)prop.GetValue(this));
-                                commandBuilder.Append(" ");
-                            }
-                            else if (prop.PropertyType == typeof(int?))
-                            {
-                                commandBuilder.Append(((int)prop.GetValue(this)).ToString());
-                                commandBuilder.Append(" ");
-                            }
-                            else if (prop.PropertyType == typeof(SerializableVector2))
-                            {
-                                float x, y;
-                                var tmp = (SerializableVector2)prop.GetValue(this);
-                                x = tmp.X;
-                                y = tmp.Y;
-                                commandBuilder.Append(x.ToString("F", CultureInfo.InvariantCulture));
-                                commandBuilder.Append(",");
-                                commandBuilder.Append(y.ToString("F", CultureInfo.InvariantCulture));
+                                //first add command and add value later
+                                commandBuilder.Append(CLICommand.GetCommand());
                                 commandBuilder.Append(" ");
 
-                            }
-                            else if (prop.PropertyType == typeof(SerializableVector3))
-                            {
-                                float x, y, z;
-                                var tmp = (SerializableVector3)prop.GetValue(this);
-                                x = tmp.X;
-                                y = tmp.Y;
-                                z = tmp.Z;
-                                commandBuilder.Append(x.ToString("F", CultureInfo.InvariantCulture));
-                                commandBuilder.Append(",");
-                                commandBuilder.Append(y.ToString("F", CultureInfo.InvariantCulture));
-                                commandBuilder.Append(",");
-                                commandBuilder.Append(z.ToString("F", CultureInfo.InvariantCulture));
-                                commandBuilder.Append(" ");
+                                if (prop.PropertyType == typeof(float?))
+                                {
+                                    commandBuilder.Append(((float)prop.GetValue(this)).ToString("F", CultureInfo.InvariantCulture));
+                                    commandBuilder.Append(" ");
+                                }
+                                else if (prop.PropertyType == typeof(string))
+                                {
+                                    commandBuilder.Append((string)prop.GetValue(this));
+                                    commandBuilder.Append(" ");
+                                }
+                                else if (prop.PropertyType == typeof(int?))
+                                {
+                                    commandBuilder.Append(((int)prop.GetValue(this)).ToString());
+                                    commandBuilder.Append(" ");
+                                }
+                                else if (prop.PropertyType == typeof(SerializableVector2))
+                                {
+                                    float x, y;
+                                    var tmp = (SerializableVector2)prop.GetValue(this);
+                                    x = tmp.X;
+                                    y = tmp.Y;
+                                    commandBuilder.Append(x.ToString("F", CultureInfo.InvariantCulture));
+                                    commandBuilder.Append(",");
+                                    commandBuilder.Append(y.ToString("F", CultureInfo.InvariantCulture));
+                                    commandBuilder.Append(" ");
+
+                                }
+                                else if (prop.PropertyType == typeof(SerializableVector3))
+                                {
+                                    float x, y, z;
+                                    var tmp = (SerializableVector3)prop.GetValue(this);
+                                    x = tmp.X;
+                                    y = tmp.Y;
+                                    z = tmp.Z;
+                                    commandBuilder.Append(x.ToString("F", CultureInfo.InvariantCulture));
+                                    commandBuilder.Append(",");
+                                    commandBuilder.Append(y.ToString("F", CultureInfo.InvariantCulture));
+                                    commandBuilder.Append(",");
+                                    commandBuilder.Append(z.ToString("F", CultureInfo.InvariantCulture));
+                                    commandBuilder.Append(" ");
+                                }
                             }
                         }
                     }

@@ -10,8 +10,8 @@
   "$schema": "http://json.schemastore.org/launchsettings.json",
   "profiles": {
     "IIS Express": {
-      "commandName": "IISExpress",
-      "commandLineArgs": "SlicerPath=C:\\Users\\FlorianJasche\\Downloads\\PrusaSlicer-2.3.0-alpha2+win64-202010241601\\PrusaSlicer-2.3.0-alpha2+win64-202010241601\\prusa-slicer-console.exe",
+      "commandName": "Project",
+      "commandLineArgs": "SlicerPath=\"D:\\Downloads\\PrusaSlicer\\prusa-slicer-console.exe\"",
       "launchBrowser": true,
       "environmentVariables": {
         "ASPNETCORE_ENVIRONMENT": "Development"
@@ -19,6 +19,7 @@
     },
     "SlicerConnector": {
       "commandName": "Project",
+      "commandLineArgs": "SlicerPath=\"D:\\Downloads\\PrusaSlicer\\prusa-slicer-console.exe\"",
       "environmentVariables": {
         "ASPNETCORE_ENVIRONMENT": "Development"
       },

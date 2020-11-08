@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Diagnostics;
+using System.IO;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -25,9 +26,9 @@ namespace SlicingBroker
             SlicerPath = localSlicerPath;
         }
         
-        public async Task SliceAsync(PrusaSlicerCLICommands commands, string ouput = "")
+        public async Task SliceAsync(PrusaSlicerCLICommands commands)
         {
-            var arguments = commands.ToString() + " -o " + ouput;
+            var arguments = commands.ToString();
             eventHandled = new TaskCompletionSource<bool>();
             using (slicingProcess = new Process())
             {
@@ -41,11 +42,15 @@ namespace SlicingBroker
                         RedirectStandardError = true,
                         RedirectStandardOutput = true
                     };
-
+                    
                     slicingProcess.StartInfo = psi;
                     slicingProcess.EnableRaisingEvents = true;
-                    #warning adjust parameter of SlicingFinished
-                    slicingProcess.Exited += (sender, args) => SlicingFinished(""); 
+#warning adjust parameter of SlicingFinished
+                    slicingProcess.Exited += (sender, args) =>
+                    {
+                        eventHandled.TrySetResult(true);
+                        FileSliced?.Invoke(this, new FileSlicedArgs(Path.Combine(commands.Output, Path.GetFileNameWithoutExtension(commands.File)+".gcode")));
+                    };
                     slicingProcess.OutputDataReceived += (sender, args) => {
                         if (!String.IsNullOrEmpty(args.Data))
                         {
@@ -80,11 +85,5 @@ namespace SlicingBroker
             DataReceived?.Invoke(this, args);
         }
 
-        private void SlicingFinished(string slicedOrLocalFilePath)
-        {
-            eventHandled.TrySetResult(true);
-            //string slicedFilePath = System.IO.Path.ChangeExtension(slicedOrLocalFilePath, ".gcode");
-            //FileSliced?.Invoke(this, new FileSlicedArgs(slicedFilePath));
-        }
     }
 }

@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.IO;
 using System.Linq;
 using System.Net.WebSockets;
 using System.Text;
@@ -74,16 +75,50 @@ namespace SlicerConnector
             if(e.Payload.type[0] == "model")
             {
 
-                var res = await os.FileOperations.DownloadFileAsync(e.Payload.storage + "/" + e.Payload.path, DownloadPath + e.Payload.name);
+                var downloadFullPath = Path.Combine(DownloadPath, e.Payload.name);
+                var res = await os.FileOperations.DownloadFileAsync(e.Payload.storage + "/" + e.Payload.path, downloadFullPath);
 
                 if(res)
                 {
-                    //start slicing
+                    SliceWithDefaultParameters(downloadFullPath);
                 }
             }
         }
-        
 
+        private void SliceWithDefaultParameters(string inputFile)
+        {
+            Task.Run(async() =>  
+            {
+                PrusaSlicerCLICommands commands = PrusaSlicerCLICommands.Default;
+                commands.Output = Path.Combine(DownloadPath, @"gcode\");
+                if(!Directory.Exists(commands.Output))
+                {
+                    Directory.CreateDirectory(commands.Output);
+                }
+
+                commands.File = inputFile;
+                var prusaSlicerBroker = new PrusaSlicerBroker(slicerPath);
+                prusaSlicerBroker.FileSliced += PrusaSlicerBroker_FileSliced;
+                await prusaSlicerBroker.SliceAsync(commands);
+            });
+        }
+
+        private void PrusaSlicerBroker_FileSliced(object sender, FileSlicedArgs e)
+        {
+            UploadGCode();
+            GenerateMeshFromGcode();
+        }
+
+
+        private void UploadGCode()
+        {
+            throw new NotImplementedException();
+        }
+
+        private void GenerateMeshFromGcode()
+        {
+            throw new NotImplementedException();
+        }
         public IConfiguration Configuration { get; }
 
         // This method gets called by the runtime. Use this method to add services to the container.
@@ -144,7 +179,11 @@ namespace SlicerConnector
 
                 //convert json to object
                 PrusaSlicerCLICommands commands = JsonSerializer.Deserialize<PrusaSlicerCLICommands>(receivedAsJson, new JsonSerializerOptions() { IgnoreNullValues = true });
-
+                commands.Output = Path.Combine(DownloadPath, @"gcode\");
+                if (!Directory.Exists(commands.Output))
+                {
+                    Directory.CreateDirectory(commands.Output);
+                }
                 if (commands.isValid())
                 {
                     var prusaSlicerBroker = new PrusaSlicerBroker(slicerPath);
