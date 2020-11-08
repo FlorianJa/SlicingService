@@ -121,7 +121,7 @@ namespace SlicerConnector
         {
             var gcodeAnalyser = new GcodeAnalyser();
             gcodeAnalyser.MeshGenrerated += GcodeAnalyser_MeshGenrerated;
-            gcodeAnalyser.GenerateMeshFromGcode(slicedFilePath, @"D:\Downloads\Meshes\");
+            gcodeAnalyser.GenerateMeshFromGcode(slicedFilePath, Path.Combine(DownloadPath, @"Meshes\"));
         }
 
         private void GcodeAnalyser_MeshGenrerated(object sender, bool e)
