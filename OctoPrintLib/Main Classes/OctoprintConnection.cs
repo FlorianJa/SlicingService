@@ -130,7 +130,7 @@ namespace OctoPrintLib
         //    byte[] resp = webClient.UploadData(server.BaseURL + location, "POST", nfile);
         //    return strResponseValue;
         //}
-        protected async Task<string> PostMultipartAsync(byte[] fileData, string fileName, string location = "local" , string path = "")
+        protected async Task<string> PostMultipartAsync(string location, MultipartContent multipartContent)
         {
             var httpClient = new HttpClient();
             var headers = httpClient.DefaultRequestHeaders;
@@ -138,9 +138,6 @@ namespace OctoPrintLib
             headers.Add("X-Api-Key", server.ApplicationKey);
             Uri requestUri = new Uri("http://" + server.DomainNmaeOrIp + "/" + location);
 
-            MultipartFormDataContent multipartContent = new MultipartFormDataContent();
-            multipartContent.Add(new StreamContent(new MemoryStream(fileData)), "file", fileName);
-            if (path != "") multipartContent.Add(new StringContent(path), "path");
             string responsebody;
             try
             {

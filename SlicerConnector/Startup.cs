@@ -103,16 +103,17 @@ namespace SlicerConnector
             });
         }
 
-        private void PrusaSlicerBroker_FileSliced(object sender, FileSlicedArgs e)
+        private async void PrusaSlicerBroker_FileSliced(object sender, FileSlicedArgs e)
         {
-            UploadGCode();
+            await UploadGCodeAsync(e.SlicedFilePath);
             GenerateMeshFromGcode();
         }
 
 
-        private void UploadGCode()
+        private async Task UploadGCodeAsync(string slicedFilePath)
         {
-            throw new NotImplementedException();
+            await os.FileOperations.UploadFileAsync(slicedFilePath);
+
         }
 
         private void GenerateMeshFromGcode()
