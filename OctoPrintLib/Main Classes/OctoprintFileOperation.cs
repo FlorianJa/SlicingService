@@ -158,7 +158,12 @@ namespace OctoPrintLib.Operations
         {
             string foldername = path.Split('/')[path.Split('/').Length - 1];
             path = path.Substring(0, path.Length - foldername.Length);
-            return await PostMultipartFolderAsync("api/files/local", foldername,path);
+
+            MultipartFormDataContent multipartContent = new MultipartFormDataContent();
+            multipartContent.Add(new StringContent(foldername), "foldername");
+            multipartContent.Add(new StringContent(path), "path");
+
+            return await PostMultipartAsync("api/files/local", multipartContent);
 
         }
 
