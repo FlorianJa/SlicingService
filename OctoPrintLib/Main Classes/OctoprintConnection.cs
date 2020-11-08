@@ -106,30 +106,7 @@ namespace OctoPrintLib
             return strResponseValue;
         }
 
-        ///// <summary>
-        ///// Posts a multipart reqest to a given <paramref name="location"/>
-        ///// </summary>
-        ///// <returns>The Result if any.</returns>
-        ///// <param name="packagestring">A packagestring should be generated elsewhere and input here as a String</param>
-        ///// <param name="location">The url sub-address like "http://192.168.1.2/<paramref name="location"/>"</param>
-        //protected string PostMultipartOld(string packagestring, string location)
-        //{
-        //    string strResponseValue = string.Empty;
-        //    var webClient = new WebClient();
-        //    string boundary = "------------------------" + DateTime.Now.Ticks.ToString("x");
-        //    webClient.Headers.Add("Content-Type", "multipart/form-data; boundary=" + boundary);
-        //    webClient.Headers.Add("X-Api-Key", server.ApiKey);
-        //    packagestring.Replace("{0}", boundary);
-        //    string package = packagestring.Replace("{0}", boundary);
-
-        //    var nfile = webClient.Encoding.GetBytes(package);
-
-
-        //    File.WriteAllBytes(@"G:\Work\testbytes.txt", nfile);
-
-        //    byte[] resp = webClient.UploadData(server.BaseURL + location, "POST", nfile);
-        //    return strResponseValue;
-        //}
+        
         protected async Task<string> PostMultipartAsync(string location, MultipartContent multipartContent)
         {
             var httpClient = new HttpClient();
