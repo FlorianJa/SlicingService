@@ -17,13 +17,13 @@
         "ASPNETCORE_ENVIRONMENT": "Development"
       }
     },
+    //the URL for this project was transferred to appsettings.json in the kestrel section
     "SlicerConnector": {
       "commandName": "Project",
-      "commandLineArgs": "SlicerPath=\"D:\\Downloads\\PrusaSlicer\\prusa-slicer-console.exe\"",
       "environmentVariables": {
         "ASPNETCORE_ENVIRONMENT": "Development"
-      },
-      "applicationUrl": "http://localhost:5000"
+      }
+
     }
   }
 }
