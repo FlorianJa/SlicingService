@@ -31,38 +31,28 @@ namespace SlicerConnector
         /// <summary>
         /// Domain name or IP of the OctoprintServer. Do not add protocol like http:// or https://. If a different Port than 80 is needed, specify it by :PORTNUMBER
         /// </summary>
-        private string OctoPrintDomainNameOrIP = "localhost";
+        private string OctoPrintDomainNameOrIP /*= "localhost:5000"*/;
 
         /// <summary>
         /// Application key for accessing th ocotprint
         /// </summary>
-        private string OcotoprintApplicationKey = "F4E8066C291F479A9F4CA65B27D7FA35";
+        private string OcotoprintApplicationKey /*= "E3C06441F4834FD2B94E8C75FD3DF915"*/;
 
 
-        private string DownloadPath = @"D:\Downloads\";
+        private string DownloadPath /*= @"D:\Downloads\"*/;
 
         public Startup(IConfiguration configuration)
         {
             Configuration = configuration;
             var tmp = Configuration as ConfigurationRoot;
 
+            OctoPrintDomainNameOrIP = configuration.GetValue<string>("OctoPrint:DomainNameOrIP");
+            OcotoprintApplicationKey = configuration.GetValue<string>("OctoPrint:APIKey");
+            DownloadPath = configuration.GetValue<string>("OctoPrint:DownloadPath");
+            slicerPath = configuration.GetValue<string>("Slicer:Path");
 
-            foreach (var provider in tmp.Providers)
-            {
-                if (provider is CommandLineConfigurationProvider)
-                {
-                    if (((CommandLineConfigurationProvider)provider).TryGet("SlicerPath", out slicerPath))
-                    {
-                        //check if file is there.
-                    }
-                    else
-                    {
-                        //Missing path to slicer. Add Error message/exception.
-                        return;
-                    }
-
-                }
-            }
+            if (!File.Exists(slicerPath))
+                throw new FileNotFoundException("The slicer application is not fouund");
 
 
             os = new OctoprintServer(OctoPrintDomainNameOrIP, OcotoprintApplicationKey);
@@ -73,13 +63,13 @@ namespace SlicerConnector
 
         private async void Os_FileAdded(object sender, FileAddedEventArgs e)
         {
-            if(e.Payload.type[0] == "model")
+            if (e.Payload.type[0] == "model")
             {
 
                 var downloadFullPath = Path.Combine(DownloadPath, e.Payload.name);
                 var res = await os.FileOperations.DownloadFileAsync(e.Payload.storage + "/" + e.Payload.path, downloadFullPath);
 
-                if(res)
+                if (res)
                 {
                     SliceWithDefaultParameters(downloadFullPath);
                 }
@@ -88,11 +78,11 @@ namespace SlicerConnector
 
         private void SliceWithDefaultParameters(string inputFile)
         {
-            Task.Run(async() =>  
+            Task.Run(async () =>
             {
                 PrusaSlicerCLICommands commands = PrusaSlicerCLICommands.Default;
                 commands.Output = Path.Combine(DownloadPath, @"gcode\");
-                if(!Directory.Exists(commands.Output))
+                if (!Directory.Exists(commands.Output))
                 {
                     Directory.CreateDirectory(commands.Output);
                 }
@@ -126,7 +116,7 @@ namespace SlicerConnector
 
         private void GcodeAnalyser_MeshGenrerated(object sender, bool e)
         {
-            
+
         }
 
         public IConfiguration Configuration { get; }
@@ -177,7 +167,12 @@ namespace SlicerConnector
 
         }
 
-
+        /// <summary>
+        /// Handle requests for the SlicerConnector websocket
+        /// </summary>
+        /// <param name="context"></param>
+        /// <param name="webSocket"></param>
+        /// <returns></returns>
         private async Task HandleWebsocketConnection(HttpContext context, WebSocket webSocket)
         {
             var buffer = new byte[1024 * 4];
@@ -204,13 +199,13 @@ namespace SlicerConnector
                     };
                     await prusaSlicerBroker.SliceAsync(commands);
                 }
-                
+
                 result = await webSocket.ReceiveAsync(new ArraySegment<byte>(buffer), CancellationToken.None);
             }
-            
+
             await webSocket.CloseAsync(result.CloseStatus.Value, result.CloseStatusDescription, CancellationToken.None);
         }
 
-        
+
     }
 }
