@@ -33,9 +33,11 @@ namespace OctoPrintLib.Operations
         /// <param name="localDownloadPath">Full path (with</param>
         public async Task<bool> DownloadFileAsync(string remoteLocation, string localDownloadPath)
         {
+            if (System.IO.File.Exists(localDownloadPath))
+                return true;
+
             using (WebClient webclient = new WebClient())
             {
-
                 webclient.Headers.Add("X-API-Key", server.ApplicationKey);
 
                 try
