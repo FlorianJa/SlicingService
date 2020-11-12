@@ -31,15 +31,15 @@ namespace SlicerConnector
         /// <summary>
         /// Domain name or IP of the OctoprintServer. Do not add protocol like http:// or https://. If a different Port than 80 is needed, specify it by :PORTNUMBER
         /// </summary>
-        private string OctoPrintDomainNameOrIP /*= "localhost:5000"*/;
+        private string OctoPrintDomainNameOrIP;
 
         /// <summary>
         /// Application key for accessing th ocotprint
         /// </summary>
-        private string OcotoprintApplicationKey /*= "E3C06441F4834FD2B94E8C75FD3DF915"*/;
+        private string OcotoprintApplicationKey;
 
 
-        private string DownloadPath /*= @"D:\Downloads\"*/;
+        private string DownloadPath;
 
         public Startup(IConfiguration configuration)
         {
@@ -52,7 +52,7 @@ namespace SlicerConnector
             slicerPath = configuration.GetValue<string>("Slicer:Path");
 
             if (!File.Exists(slicerPath))
-                throw new FileNotFoundException("The slicer application is not fouund");
+                throw new FileNotFoundException("The slicer application is not found in the given path");
 
 
             os = new OctoprintServer(OctoPrintDomainNameOrIP, OcotoprintApplicationKey);
