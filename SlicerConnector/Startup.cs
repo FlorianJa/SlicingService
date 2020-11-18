@@ -67,7 +67,9 @@ namespace SlicerConnector
             {
 
                 var downloadFullPath = Path.Combine(DownloadPath, e.Payload.name);
-                var res = await os.FileOperations.DownloadFileAsync(e.Payload.storage + "/" + e.Payload.path, downloadFullPath);
+                bool res = true;
+                if (!System.IO.File.Exists(downloadFullPath))
+                    res = await os.FileOperations.DownloadFileAsync(e.Payload.storage + "/" + e.Payload.path, downloadFullPath);
 
                 if (res)
                 {
