@@ -2,6 +2,7 @@
 using System.Diagnostics;
 using System.IO;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace SlicingBroker
@@ -18,16 +19,21 @@ namespace SlicingBroker
         #endregion
 
         public string SlicerPath { get; }
-        
         public EventHandler<DataReceivedEventArgs> DataReceived;
+        private static SemaphoreSlim semaphore = new SemaphoreSlim(1);
+        private bool isBusy = false;
 
         public PrusaSlicerBroker(string localSlicerPath)
         {
             SlicerPath = localSlicerPath;
         }
-        
+
         public async Task SliceAsync(PrusaSlicerCLICommands commands)
         {
+            //request entry to the function if there is no one else using it
+            await semaphore.WaitAsync();
+
+            isBusy = true;
             var arguments = commands.ToString();
             eventHandled = new TaskCompletionSource<bool>();
             using (slicingProcess = new Process())
@@ -42,22 +48,30 @@ namespace SlicingBroker
                         RedirectStandardError = true,
                         RedirectStandardOutput = true
                     };
-                    
+
                     slicingProcess.StartInfo = psi;
                     slicingProcess.EnableRaisingEvents = true;
 #warning adjust parameter of SlicingFinished
                     slicingProcess.Exited += (sender, args) =>
                     {
                         eventHandled.TrySetResult(true);
-                        FileSliced?.Invoke(this, new FileSlicedArgs(Path.Combine(commands.Output, Path.GetFileNameWithoutExtension(commands.File)+".gcode")));
+                        FileSliced?.Invoke(this,
+                            new FileSlicedArgs(Path.Combine(commands.Output,
+                                Path.GetFileNameWithoutExtension(commands.File) + ".gcode")));
+
+                        //release the locking of the function so that the other callers who are waiting can get to it one by one.
+                        semaphore.Release();
+                        isBusy = false;
                     };
-                    slicingProcess.OutputDataReceived += (sender, args) => {
+                    slicingProcess.OutputDataReceived += (sender, args) =>
+                    {
                         if (!String.IsNullOrEmpty(args.Data))
                         {
                             OutputDataReceived(args);
                         }
                     };
-                    slicingProcess.ErrorDataReceived += (sender, args) => {
+                    slicingProcess.ErrorDataReceived += (sender, args) =>
+                    {
                         if (!String.IsNullOrEmpty(args.Data))
                         {
                             OutputDataReceived(args);
@@ -76,8 +90,12 @@ namespace SlicingBroker
                     Console.WriteLine(e);
                 }
 
+
                 await Task.WhenAny(eventHandled.Task);
             }
+
+
+            isBusy = false;
         }
 
         private void OutputDataReceived(DataReceivedEventArgs args)
