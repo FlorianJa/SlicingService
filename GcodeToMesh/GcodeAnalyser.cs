@@ -36,7 +36,7 @@ namespace GcodeToMesh
         public string modelName { get; private set; }
 
         private bool working = false;
-        private List<string> fileNames;
+        private ConcurrentBag<string> fileNames;
 
         public event EventHandler<bool> MeshGenrerated;
 
@@ -44,7 +44,7 @@ namespace GcodeToMesh
         {
             if (!working)
             {
-                fileNames = new List<string>();
+                fileNames = new ConcurrentBag<string>();
                 modelName = Path.GetFileNameWithoutExtension(path);
                 working = true;
                 FolderToExport = ExportPath;
@@ -79,6 +79,8 @@ namespace GcodeToMesh
                     createdMeshes = null;
                     fileNames = null;
                     working = false;
+                }).ContinueWith((task) => {
+                    GC.Collect();
                 });
                 
             }
@@ -185,7 +187,7 @@ namespace GcodeToMesh
             {
                 foreach (var file in fileNames)
                 {
-                    archive.CreateEntryFromFile(file, Path.GetFileName(file));
+                    archive.CreateEntryFromFile(file, Path.GetFileName(file), CompressionLevel.Fastest);
                 }
                 
             }
