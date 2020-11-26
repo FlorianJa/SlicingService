@@ -353,5 +353,5 @@ MigrationBackup/
 .ionide/
 
 # ignore app.json file 
-#appsettings.json
+SlicerConnector/appsettings.json
 
