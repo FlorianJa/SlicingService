@@ -173,174 +173,164 @@ namespace GcodeToMesh
             createdMeshes.Enqueue(msc);
         }
 
+        static Vector3 currentPosition;
+
+        private bool isTraveling = false;
+        string compName = string.Empty;
+        int currentLayer = -1;
+        float currentLayerHeight = 0f;
+        float nextLayerHeight = 0f;
+
         public void ReadGcodeFile(string path)
         {
 
-            StreamReader reader = new StreamReader(new FileStream(path, FileMode.Open));
-            
-            //mc.print("loading " + filename);
-            List<string> meshnames = new List<string>();
-            int currentmesh = -1;
-            Dictionary<string, List<List<Vector3>>> tmpmove = new Dictionary<string, List<List<Vector3>>>();
-            Vector3 currpos = new Vector3(0, 0, 0);
-            float accumulateddist = 0.0f;
-            Vector3 lastpointcache = new Vector3(0, 0, 0);
-            int linesread = 0;
-            int layernum = -1;
-            bool accumulating = false;
-            float lastanglecache = 0.0f;
-            float accumulatedangle = 0.0f;
-            bool ismesh = false;
-            //bool islayerheight = false;
-            string line = reader.ReadLine();
-            while(line != null)
+            Dictionary<string, List<List<Vector3>>> movesPerComponent = new Dictionary<string, List<List<Vector3>>>();
+            float tmpNextLayerHeight;
+
+            currentPosition = Vector3.zero;
+
+            var lines = File.ReadAllLines(path);
+
+            foreach (var line in lines)
             {
-                //Layerheigt is defined in Prusa by writing ";AFTER_LAYER_CHANGE" and in the next line writing the height, therefore this happens:
-                linesread += 1;
-                if (line.Contains("support"))
+                if (LineIsMovement(line))
                 {
-                    bool ishere = true;
-                }
-                bool isnotmeshmove = IsLineMesh(line);
-                if (line.Contains("move to next layer"))
-                {
-                    layernum = layernum + 1;
-                    currpos.y = GetYPosition(line);
-                    //islayerheight = true;
-                    foreach (string namepart in tmpmove.Keys)
+                    if (MovesToNextLayer(line))
                     {
-                        createlayer(tmpmove[namepart], namepart);
-                    }
-                    tmpmove.Clear();
-                }
-                //movement commands are all G0 or G1 in Prusa Gcode
-
-                else if ((line.StartsWith("G1") || line.StartsWith("G0")) && layernum != -1 && ((layernum % layercluster) == 0 || layercluster == 1))
-                {
-                    //bool isnew = false;
-                    if (line.Contains(";") && !isnotmeshmove)
-                    {
-                        string namemesh = ExtractMeshName(layernum, line);//In Prusaslicer the comments about what the Line Means are right next to the line
-
-                        if (!meshnames.Contains(namemesh))
+                        currentLayer++;
+                        foreach (var keyValuePair in movesPerComponent)
                         {
-                            //isnew = true;
-                            meshnames.Add(namemesh);
-                            currentmesh = meshnames.Count - 1;
-                            tmpmove[namemesh] = new List<List<Vector3>>();
-                            tmpmove[namemesh].Add(new List<Vector3>());
+                            createlayer(keyValuePair.Value, keyValuePair.Key);
+
+                        }
+                        movesPerComponent.Clear();
+                        currentLayerHeight = nextLayerHeight;
+                    }
+
+                    CheckTraveling(line);
+                    GetPosition(line);
+
+                    if (IsNewPart(line) && compName != string.Empty)
+                    {
+                        if (!movesPerComponent.ContainsKey(compName))
+                        {
+                            movesPerComponent.Add(compName, new List<List<Vector3>>() { new List<Vector3>() });
                         }
                         else
                         {
-                            if (meshnames[currentmesh] != namemesh || !ismesh)//Sometimes a type like infill happens more often inside one layer
-                            {
-                                tmpmove[namemesh].Add(new List<Vector3>());
-                            }
+                            movesPerComponent[compName].Add(new List<Vector3>());
                         }
-                        ismesh = true;
-                    }
-
-                    string[] parts = line.Split(';')[0].Split(' ');
-                    if (line.Contains(";") && !isnotmeshmove)
-                    {
-                                                //Since The G1 or G0 Commands are just "go to" commands, we need to store the Previous position as well, so before we touch currpos, we add it to the mesh, but only once per mesh
-                        if (!accumulating &&
-                            (line.Contains("X") || line.Contains("Y") || line.Contains("Z")) &&
-                            line.Contains("E") &&
-                            currpos.x != 0 && currpos.z != 0
-                            && currentmesh != -1)
+                        if (!isTraveling)
                         {
-                            string meshname = meshnames[currentmesh];
-                            if (tmpmove.ContainsKey(meshname))
-                            {
-                                tmpmove[meshname][tmpmove[meshname].Count - 1].Add(currpos);
-                            }
-
-                        }
-
-                        //now we can update currpos
-                        foreach (string part in parts)
-                        {
-                            if (part.Length > 0 && part[0] == 'X')
-                            {
-                                currpos.x = float.Parse(part.Substring(1), CultureInfo.InvariantCulture.NumberFormat);
-                            }
-                            else if (part.Length > 0 && part[0] == 'Y')
-                            {
-                                currpos.z = float.Parse(part.Substring(1), CultureInfo.InvariantCulture.NumberFormat); //Unity has a Lefthanded Coordinate System (Y up), Gcode a Righthanded (Z up)
-                            }
-                            else if (part.Length > 0 && part[0] == 'Z')
-                            {
-                                currpos.y = float.Parse(part.Substring(1), CultureInfo.InvariantCulture.NumberFormat);
-                            }
-                        }
-                        if (((!accumulating /*|| accumulateddist > gcodeHandler.distanceclustersize || accumulatedangle > gcodeHandler.rotationclustersize*/) && (ismesh || line.Contains("E"))) && (line.Contains("X") || line.Contains("Y") || line.Contains("Z")) && currpos != new Vector3(0, 0, 0))
-                        {
-                            if (currentmesh != -1 )
-                            {
-                                string meshname = meshnames[currentmesh];
-                                tmpmove[meshname][tmpmove[meshname].Count - 1].Add(currpos);
-                            }
+                            movesPerComponent[compName][^1].Add(new Vector3(currentPosition.x, currentPosition.y, currentPosition.z));
                         }
                     }
-                    else
+                    if (AddCurrentPositionToList(line))
                     {
-                        foreach (string part in parts)
-                        {
-                            if (part.Length > 0 && part[0] == 'X')
-                            {
-                                currpos.x = float.Parse(part.Substring(1), CultureInfo.InvariantCulture.NumberFormat);
-                            }
-                            else if (part.Length > 0 && part[0] == 'Y')
-                            {
-                                currpos.z = float.Parse(part.Substring(1), CultureInfo.InvariantCulture.NumberFormat); //Unity has a Lefthanded Coordinate System (Y up), Gcode a Righthanded (Z up)
-                            }
-                            else if (part.Length > 0 && part[0] == 'Z')
-                            {
-                                if (part.Length > 1)
-                                    currpos.y = float.Parse(part.Substring(1), CultureInfo.InvariantCulture.NumberFormat);
-                            }
-                        }
+                        movesPerComponent[compName][^1].Add(new Vector3(currentPosition.x, currentPosition.y, currentPosition.z));
                     }
                 }
-                if (line.StartsWith(";BEFORE-LAYER-CHANGE") || line.Contains("retract"))
+                else
                 {
-                    ismesh = false;
+                    if (TryGetLayerHeightFromLine(line, out tmpNextLayerHeight))
+                    {
+                        nextLayerHeight = tmpNextLayerHeight;
+                    }
+
+                    var tmp = GetComponentName(line);
+                    if (tmp != compName)
+                    {
+                        compName = tmp.ToLower();
+                        if (!movesPerComponent.ContainsKey(compName))
+                        {
+                            movesPerComponent.Add(compName, new List<List<Vector3>>() { new List<Vector3>() });
+                            movesPerComponent[compName][^1].Add(new Vector3(currentPosition.x, currentPosition.y, currentPosition.z));
+                        }
+                        else
+                        {
+                            movesPerComponent[compName].Add(new List<Vector3>());
+                            movesPerComponent[compName][^1].Add(new Vector3(currentPosition.x, currentPosition.y, currentPosition.z));
+                        }
+                    }
                 }
-                line = reader.ReadLine();
+            }
+        }
+
+        private bool LineIsMovement(string line)
+        {
+            return line.StartsWith("G1");
+        }
+        private bool MovesToNextLayer(string line)
+        {
+            return line.Contains("move to next layer");
+        }
+
+        private void CheckTraveling(string line)
+        {
+            if (line.Contains("; lift Z") && !isTraveling)
+            {
+                isTraveling = true;
+                return;
             }
 
-            fileRead = true;
-            tmpmove.Clear();
-            tmpmove = null;
-            meshnames.Clear();
-            meshnames = null;
+            if (line.Contains("; restore layer Z") && isTraveling)
+            {
+                isTraveling = false;
+                return;
+            }
+
         }
 
-        private static string ExtractMeshName(int layernum, string line)
+        private void GetPosition(string line)
         {
-            return line.Split(';')[1].Split(' ')[1] + " " + layernum.ToString(CultureInfo.InvariantCulture);
+            var parts = line.Split(' ');
+            foreach (var part in parts)
+            {
+                if (part.StartsWith('X'))
+                {
+                    currentPosition.x = float.Parse(part.Substring(1, part.Length - 1), CultureInfo.InvariantCulture.NumberFormat);
+                }
+                else if (part.StartsWith('Y'))
+                {
+                    currentPosition.z = float.Parse(part.Substring(1, part.Length - 1), CultureInfo.InvariantCulture.NumberFormat);
+                }
+                else if (part.StartsWith('Z') && part.Length > 1)
+                {
+                    currentPosition.y = float.Parse(part.Substring(1, part.Length - 1), CultureInfo.InvariantCulture.NumberFormat);
+                }
+            }
         }
 
-        private static float GetYPosition(string line)
+        private bool AddCurrentPositionToList(string line)
         {
-            return float.Parse(line.Split('Z')[1].Split(' ')[0], CultureInfo.InvariantCulture.NumberFormat);
+            return !isTraveling && (line.Contains("; skirt") || line.Contains("; perimeter") || line.Contains("; infill") || line.Contains("; support"));
         }
 
-        private static bool IsLineMesh(string line)
+        private bool IsNewPart(string line)
         {
-            return line.Contains("wipe and retract") || 
-                    line.Contains("move to first") || 
-                    line.Contains("move inwards before travel") || 
-                    line.Contains("retract") ||
-                    line.Contains("lift Z") || 
-                    line.Contains("move to first perimeter point") || 
-                    line.Contains("restore layer Z") || 
-                    line.Contains("unretract") ||
-                    line.Contains("Move") || 
-                    line.Contains("home");
+            return line.Contains("move to first");
         }
 
+        private bool TryGetLayerHeightFromLine(string line, out float layerHeight)
+        {
+            if (line.Contains(";HEIGHT"))
+            {
+                var tmp = line.Split(':');
+                layerHeight = float.Parse(tmp[1], CultureInfo.InvariantCulture.NumberFormat);
+                return true;
+            }
+            layerHeight = 0;
+            return false;
+        }
+
+        private string GetComponentName(string line)
+        {
+            if (line.StartsWith(";TYPE:") && line != ";TYPE:Custom")
+            {
+                return line.Substring(6);
+            }
+            return compName;
+        }
 
         void createlayer(List<List<Vector3>> tmpmoves, string meshname)
         {
