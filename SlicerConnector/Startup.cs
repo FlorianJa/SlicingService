@@ -26,6 +26,11 @@ namespace SlicerConnector
     public class Startup
     {
         private string slicerPath;
+
+        public string ModelDownloadPath { get; private set; }
+        public string GCodePath { get; private set; }
+        public string MeshesPath { get; private set; }
+
         private OctoprintServer os;
 
         /// <summary>
@@ -39,7 +44,7 @@ namespace SlicerConnector
         private string OcotoprintApplicationKey;
 
 
-        private string DownloadPath;
+        private string BasePath;
 
         public Startup(IConfiguration configuration)
         {
@@ -48,8 +53,12 @@ namespace SlicerConnector
 
             OctoPrintDomainNameOrIP = configuration.GetValue<string>("OctoPrint:DomainNameOrIP");
             OcotoprintApplicationKey = configuration.GetValue<string>("OctoPrint:APIKey");
-            DownloadPath = configuration.GetValue<string>("OctoPrint:DownloadPath");
+            BasePath = configuration.GetValue<string>("OctoPrint:BasePath");
             slicerPath = configuration.GetValue<string>("Slicer:Path");
+
+            ModelDownloadPath = Path.Combine(BasePath, "Models");
+            GCodePath = Path.Combine(BasePath, "GCode");
+            MeshesPath = Path.Combine(BasePath, "Meshes");
 
             if (!File.Exists(slicerPath))
                 throw new FileNotFoundException("The slicer application is not found in the given path");
@@ -66,7 +75,7 @@ namespace SlicerConnector
             if (e.Payload.type[0] == "model")
             {
 
-                var downloadFullPath = Path.Combine(DownloadPath, e.Payload.name);
+                var downloadFullPath = Path.Combine(ModelDownloadPath, e.Payload.name);
                 bool res = true;
                 if (!System.IO.File.Exists(downloadFullPath))
                     res = await os.FileOperations.DownloadFileAsync(e.Payload.storage + "/" + e.Payload.path, downloadFullPath);
@@ -83,7 +92,7 @@ namespace SlicerConnector
             Task.Run(async () =>
             {
                 PrusaSlicerCLICommands commands = PrusaSlicerCLICommands.Default;
-                commands.Output = Path.Combine(DownloadPath, @"gcode\");
+                commands.Output = GCodePath;
                 if (!Directory.Exists(commands.Output))
                 {
                     Directory.CreateDirectory(commands.Output);
@@ -113,7 +122,7 @@ namespace SlicerConnector
         {
             var gcodeAnalyser = new GcodeAnalyser();
             gcodeAnalyser.MeshGenrerated += GcodeAnalyser_MeshGenrerated;
-            gcodeAnalyser.GenerateMeshFromGcode(slicedFilePath, Path.Combine(DownloadPath, @"Meshes\"));
+            gcodeAnalyser.GenerateMeshFromGcode(slicedFilePath, MeshesPath);
         }
 
         private void GcodeAnalyser_MeshGenrerated(object sender, bool e)
@@ -186,7 +195,7 @@ namespace SlicerConnector
 
                 //convert json to object
                 PrusaSlicerCLICommands commands = JsonSerializer.Deserialize<PrusaSlicerCLICommands>(receivedAsJson, new JsonSerializerOptions() { IgnoreNullValues = true });
-                commands.Output = Path.Combine(DownloadPath, @"gcode\");
+                commands.Output = GCodePath;
                 if (!Directory.Exists(commands.Output))
                 {
                     Directory.CreateDirectory(commands.Output);
