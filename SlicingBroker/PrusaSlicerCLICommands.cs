@@ -85,7 +85,7 @@ namespace SlicingBroker
             if (String.IsNullOrEmpty(File))
                 return false;
 
-
+#if !DEBUG
             if (!FillDensity.HasValue)
                 return false;
             
@@ -102,7 +102,7 @@ namespace SlicingBroker
                 return false;
             if (Center!=null &&(Center.X < 0f || Center.Y < 0f))
                 return false;
-
+#endif
             return true;
         }
 
