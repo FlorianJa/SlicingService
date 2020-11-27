@@ -20,6 +20,8 @@ namespace GcodeToMesh
         private float plasticwidth = 0.45f;
         private ConcurrentQueue<List<MeshCreatorInput>> meshCreatorInputQueue = new ConcurrentQueue<List<MeshCreatorInput>>();
         private ConcurrentQueue<List<Mesh>> createdMeshes = new ConcurrentQueue<List<Mesh>>();
+        private ConcurrentDictionary<string, ConcurrentBag<Mesh>> toMergeMeshes = new ConcurrentDictionary<string, ConcurrentBag<Mesh>>();
+
         private int createdLayers;
         private volatile bool fileRead = false;
         public float meshsimplifyquality = 0.75f;
@@ -37,6 +39,7 @@ namespace GcodeToMesh
 
         private bool working = false;
         private ConcurrentBag<string> fileNames;
+        private bool mergeLayers = false;
 
         public event EventHandler<bool> MeshGenrerated;
 
@@ -52,7 +55,12 @@ namespace GcodeToMesh
 
                 meshCreatorInputQueue = new ConcurrentQueue<List<MeshCreatorInput>>();
                 createdMeshes = new ConcurrentQueue<List<Mesh>>();
-                
+
+                int numProcs = Environment.ProcessorCount;
+                int concurrencyLevel = numProcs * 2;
+
+                toMergeMeshes = new ConcurrentDictionary<string, ConcurrentBag<Mesh>>(concurrencyLevel, 10); //there shouldnt be more than 10 different components
+
                 Task.Run(() =>
                 {
                     while (!fileRead || meshCreatorInputQueue.Count > 0)
@@ -69,6 +77,43 @@ namespace GcodeToMesh
 
                     Parallel.ForEach(createdMeshes, (currentMesh) => simplify(currentMesh));
                     
+                    if(mergeLayers)
+                    {
+                        foreach (var components in toMergeMeshes)
+                        {
+                            var tmp = components.Value.ToList();
+                            int partCounter = 0;
+                            var mergedMeshes = new List<Mesh>();
+                            int triangleCount = 0;
+                            foreach (var mesh in tmp)
+                            {
+                                
+                                if(triangleCount+ mesh.TriangleCount < 65000)// Unity max triangle count is around 650000
+                                {
+                                    triangleCount += mesh.TriangleCount;
+                                    mergedMeshes.Add(mesh);
+                                }
+                                else
+                                {
+                                    mergedMeshes[0].name += partCounter;
+                                    SaveLayerAsObj(mergedMeshes);
+                                    mergedMeshes.Clear();
+                                    mergedMeshes.Add(mesh);
+                                    partCounter++;
+                                    triangleCount = mesh.TriangleCount;
+                                }
+                            }
+                            
+                            if(mergedMeshes.Count > 0)
+                            {
+                                mergedMeshes[0].name += partCounter;
+                                SaveLayerAsObj(mergedMeshes);
+                                mergedMeshes.Clear();
+                            }
+                        }
+                        
+                    }
+
                     ZipMeshes();
                     DeleteGcodeFiles();
                     MeshGenrerated?.Invoke(this, true);
@@ -77,6 +122,8 @@ namespace GcodeToMesh
                     meshCreatorInputQueue = null;
                     createdMeshes.Clear();
                     createdMeshes = null;
+                    toMergeMeshes.Clear();
+                    toMergeMeshes = null;
                     fileNames = null;
                     working = false;
                 }).ContinueWith((task) => {
@@ -112,8 +159,22 @@ namespace GcodeToMesh
 
             }
 
-            SaveLayerAsObj(meshes);
+            if (mergeLayers)
+            {
+                foreach (var mesh in meshes)
+                {
+                    if(!toMergeMeshes.ContainsKey(mesh.name))
+                    {
+                        toMergeMeshes.TryAdd(mesh.name, new ConcurrentBag<Mesh>());
+                    }
 
+                    toMergeMeshes[mesh.name].Add(mesh);
+                }
+            }
+            else
+            {
+                SaveLayerAsObj(meshes);
+            }
         }
 
         public void SaveLayerAsAsset(Mesh mesh, string name)
@@ -381,7 +442,7 @@ namespace GcodeToMesh
             {
                 if (moves.Count > 1)
                 {
-                    var rawMesh = CreateRawMesh(moves, meshname + currentLayer);
+                    var rawMesh = CreateRawMesh(moves, meshname,  currentLayer);
                     if (rawMesh != null)
                     {
                         tmp.Add(rawMesh);
@@ -391,7 +452,7 @@ namespace GcodeToMesh
             meshCreatorInputQueue.Enqueue(tmp);
         }
 
-        internal MeshCreatorInput CreateRawMesh(List<Vector3> tmpmove, string name)
+        internal MeshCreatorInput CreateRawMesh(List<Vector3> tmpmove, string name, int layer = 0)
         {
             if (tmpmove.Count <= 1)
             {
@@ -529,10 +590,11 @@ namespace GcodeToMesh
             newTriangles.Add(5 + 4 * maxi);
             newTriangles.Add(6 + 4 * maxi);
 
+            var meshname = mergeLayers ? name : name + " " + layer;
 
             return new MeshCreatorInput
             {
-                meshname = name,
+                meshname = meshname,
                 newUV = newUV.ToArray(),
                 newNormals = newNormals.ToArray(),
                 newVertices = newVertices.ToArray(),
