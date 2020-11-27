@@ -203,12 +203,24 @@ namespace SlicerConnector
                 if (commands.isValid())
                 {
                     var prusaSlicerBroker = new PrusaSlicerBroker(slicerPath);
+                    prusaSlicerBroker.FileSliced += PrusaSlicerBroker_FileSliced;
+
                     prusaSlicerBroker.DataReceived += async (sender, args) =>
                     {
                         var tmp = Encoding.ASCII.GetBytes(args.Data);
                         await webSocket.SendAsync(new ArraySegment<byte>(tmp, 0, args.Data.Length), result.MessageType, result.EndOfMessage, CancellationToken.None);
                     };
-                    await prusaSlicerBroker.SliceAsync(commands);
+
+                    if (File.Exists(Path.Combine(ModelDownloadPath, commands.File)))
+                    {
+                        commands.File = Path.Combine(ModelDownloadPath, commands.File);
+                        await prusaSlicerBroker.SliceAsync(commands);
+
+                    }
+                    else
+                    {
+                        // download file and slice afterwards
+                    }
                 }
 
                 result = await webSocket.ReceiveAsync(new ArraySegment<byte>(buffer), CancellationToken.None);

@@ -49,9 +49,6 @@ namespace SlicingBroker
                         RedirectStandardOutput = true
                     };
 
-                    slicingProcess.StartInfo = psi;
-                    slicingProcess.EnableRaisingEvents = true;
-#warning adjust parameter of SlicingFinished
                     slicingProcess.Exited += (sender, args) =>
                     {
                         eventHandled.TrySetResult(true);
@@ -77,6 +74,10 @@ namespace SlicingBroker
                             OutputDataReceived(args);
                         }
                     };
+
+                    slicingProcess.StartInfo = psi;
+                    slicingProcess.EnableRaisingEvents = true;
+                    
                     slicingProcess.Start();
 
                     // Asynchronously read the standard output of the spawned process.

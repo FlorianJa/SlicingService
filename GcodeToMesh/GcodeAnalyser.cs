@@ -183,6 +183,11 @@ namespace GcodeToMesh
 
         private void ZipMeshes()
         {
+            if(File.Exists(Path.Combine(FolderToExport, modelName + ".zip")))
+            {
+                File.Delete(Path.Combine(FolderToExport, modelName + ".zip"));
+            }
+
             using (ZipArchive archive = ZipFile.Open(Path.Combine(FolderToExport, modelName + ".zip"), ZipArchiveMode.Create))
             {
                 foreach (var file in fileNames)
