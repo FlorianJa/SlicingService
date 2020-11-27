@@ -39,7 +39,7 @@ namespace GcodeToMesh
 
         private bool working = false;
         private ConcurrentBag<string> fileNames;
-        private bool mergeLayers = false;
+        private bool mergeLayers = true;
 
         public event EventHandler<bool> MeshGenrerated;
 
@@ -208,9 +208,9 @@ namespace GcodeToMesh
             {
                 foreach (var mesh in meshes)
                 {
-                    sb.Append(Environment.NewLine);
-                    sb.Append("o " + counter++);
-                    sb.Append(Environment.NewLine);
+                    //sb.Append(Environment.NewLine);
+                    //sb.Append("o " + counter++);
+                    //sb.Append(Environment.NewLine);
                     foreach (var vertex in mesh.Vertices)
                     {
                         sb.Append("v ");
