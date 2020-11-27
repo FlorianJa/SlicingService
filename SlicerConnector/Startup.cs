@@ -63,6 +63,9 @@ namespace SlicerConnector
             if (!File.Exists(slicerPath))
                 throw new FileNotFoundException("The slicer application is not found in the given path");
 
+            if (!Directory.Exists(ModelDownloadPath))
+                Directory.CreateDirectory(ModelDownloadPath);
+
 
             os = new OctoprintServer(OctoPrintDomainNameOrIP, OcotoprintApplicationKey);
             os.FileAdded += Os_FileAdded;
