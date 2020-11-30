@@ -148,7 +148,12 @@ namespace SlicerConnector
             {
                 app.UseDeveloperExceptionPage();
             }
+            app.UseRouting();
 
+            app.UseEndpoints(endpoints =>
+            {
+                endpoints.MapControllers();
+            });
             var webSocketOptions = new WebSocketOptions()
             {
                 KeepAliveInterval = TimeSpan.FromSeconds(120),
