@@ -111,21 +111,27 @@ namespace OctoPrintLib
             {
                 WebSocketReceiveResult received = await webSocket.ReceiveAsync(new ArraySegment<byte>(buffer), CancellationToken.None);
                 string text = Encoding.UTF8.GetString(buffer, 0, received.Count);
+                stringbuilder.Append(text);
+                if (received.EndOfMessage)
+                {
+                    HandleWebSocketData(stringbuilder.ToString());
+                    stringbuilder.Clear();
+                }
 
-                if (text.Last() == '}')//json messages end with }. If the text does not end with } this indicates there is more data (message bigger then buffer)
-                {
-                    stringbuilder.Append(text);
-                    var tmp = stringbuilder.ToString();
-                    if (tmp.Count(c => c == '{') == tmp.Count(c => c == '}'))//there is the rare opportunity that the last } is not the closing } for the first {. In a valid json string are the same amount of { and }
-                    {
-                        HandleWebSocketData(stringbuilder.ToString());
-                        stringbuilder.Clear();
-                    } 
-                }
-                else
-                {
-                    stringbuilder.Append(text);
-                }
+                //if (text.Last() == '}')//json messages end with }. If the text does not end with } this indicates there is more data (message bigger then buffer)
+                //{
+                //    stringbuilder.Append(text);
+                //    var tmp = stringbuilder.ToString();
+                //    if (tmp.Count(c => c == '{') == tmp.Count(c => c == '}'))//there is the rare opportunity that the last } is not the closing } for the first {. In a valid json string are the same amount of { and }
+                //    {
+                //        HandleWebSocketData(stringbuilder.ToString());
+                //        stringbuilder.Clear();
+                //    } 
+                //}
+                //else
+                //{
+                //    stringbuilder.Append(text);
+                //}
 
             }
         }

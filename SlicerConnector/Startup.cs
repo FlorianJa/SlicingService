@@ -123,15 +123,15 @@ namespace SlicerConnector
 
         private void GenerateMeshFromGcode(string slicedFilePath)
         {
-            var gcodeAnalyser = new GcodeAnalyser();
-            gcodeAnalyser.MeshGenrerated += GcodeAnalyser_MeshGenrerated;
-            gcodeAnalyser.GenerateMeshFromGcode(slicedFilePath, MeshesPath);
+            //var gcodeAnalyser = new GcodeAnalyser();
+            //gcodeAnalyser.MeshGenrerated += GcodeAnalyser_MeshGenrerated;
+            //gcodeAnalyser.GenerateMeshFromGcode(slicedFilePath, MeshesPath);
         }
 
-        private void GcodeAnalyser_MeshGenrerated(object sender, bool e)
-        {
+        //private void GcodeAnalyser_MeshGenrerated(object sender, bool e)
+        //{
 
-        }
+        //}
 
         public IConfiguration Configuration { get; }
 
@@ -211,12 +211,12 @@ namespace SlicerConnector
                 if (commands.isValid())
                 {
                     var prusaSlicerBroker = new PrusaSlicerBroker(slicerPath);
-                    prusaSlicerBroker.FileSliced += PrusaSlicerBroker_FileSliced;
+                    prusaSlicerBroker.FileSliced += PrusaSlicerBroker_FileSliced(webSocket);
 
                     prusaSlicerBroker.DataReceived += async (sender, args) =>
                     {
-                        var tmp = Encoding.ASCII.GetBytes(args.Data);
-                        await webSocket.SendAsync(new ArraySegment<byte>(tmp, 0, args.Data.Length), result.MessageType, result.EndOfMessage, CancellationToken.None);
+                        //var tmp = Encoding.ASCII.GetBytes("{" + args.Data +"}");
+                        //await webSocket.SendAsync(new ArraySegment<byte>(tmp, 0, args.Data.Length), result.MessageType, result.EndOfMessage, CancellationToken.None);
                     };
 
                     if (File.Exists(Path.Combine(ModelDownloadPath, commands.File)))
@@ -237,6 +237,33 @@ namespace SlicerConnector
             await webSocket.CloseAsync(result.CloseStatus.Value, result.CloseStatusDescription, CancellationToken.None);
         }
 
+        private EventHandler<FileSlicedArgs> PrusaSlicerBroker_FileSliced(WebSocket websocket)
+        {
+            Action<object, FileSlicedArgs> action = (sender, e) =>
+            {
+                var _websocket = websocket;
+                var gcodeAnalyser = new GcodeAnalyser();
+                gcodeAnalyser.MeshGenrerated += GcodeAnalyser_MeshGenrerated(_websocket);
+                gcodeAnalyser.GenerateMeshFromGcode(e.SlicedFilePath, MeshesPath);
+            };
 
+            return new EventHandler<FileSlicedArgs>(action);
+        }
+
+
+        private EventHandler<bool> GcodeAnalyser_MeshGenrerated(WebSocket websocket)
+        {
+            Action<object, bool> action = (sender, e) =>
+            {
+                var _websocket = websocket;
+                var args = "{\"type\":\"FileSliced\",	\"Path\":\"D:\\SlicerConnector\\Meshes\\triceratops.zip\"}";
+
+                var tmp = Encoding.ASCII.GetBytes(args);
+
+                _websocket.SendAsync(new ArraySegment<byte>(tmp, 0, args.Length), WebSocketMessageType.Text, true, CancellationToken.None);
+            };
+
+            return new EventHandler<bool>(action);
+        }
     }
 }
