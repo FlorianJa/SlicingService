@@ -39,7 +39,7 @@ namespace SlicerConnector.Controllers
             if (filename == null)
                 return Content("filename not present");
 
-            var path = @"D:\SlicerConnector\Meshes\triceratops-combinedonlyExternal.zip";
+            var path = @"D:\SlicerConnector\Meshes\"+filename+".zip";
 
             //Path.Combine(
             //               Directory.GetCurrentDirectory(),

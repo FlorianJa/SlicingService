@@ -256,8 +256,8 @@ namespace SlicerConnector
             Action<object, bool> action = (sender, e) =>
             {
                 var _websocket = websocket;
-                var args = "{\"type\":\"FileSliced\",	\"Path\":\"D:\\SlicerConnector\\Meshes\\triceratops.zip\"}";
-
+                //var args = "{\"type\":\"FileSliced\",	\"Path\":\"D:\\SlicerConnector\\Meshes\\triceratops.zip\"}";
+                var args = "{\"type\":\"FileSliced\",	\"name\":\"triceratops\"}";
                 var tmp = Encoding.ASCII.GetBytes(args);
 
                 _websocket.SendAsync(new ArraySegment<byte>(tmp, 0, args.Length), WebSocketMessageType.Text, true, CancellationToken.None);
