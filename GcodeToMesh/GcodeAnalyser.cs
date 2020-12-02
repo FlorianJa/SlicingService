@@ -79,9 +79,10 @@ namespace GcodeToMesh
                     
                     if(mergeLayers)
                     {
-                        foreach (var components in toMergeMeshes)
-                        {
-                            var tmp = components.Value.ToList();
+                        Parallel.ForEach(toMergeMeshes, (component) => { 
+                                               
+                            var tmp = component.Value.ToList().OrderBy(x => x.layer);
+                            
                             int partCounter = 0;
                             var mergedMeshes = new List<Mesh>();
                             int triangleCount = 0;
@@ -110,8 +111,9 @@ namespace GcodeToMesh
                                 SaveLayerAsObj(mergedMeshes);
                                 mergedMeshes.Clear();
                             }
-                        }
                         
+                        });
+
                     }
 
                     ZipMeshes();
@@ -155,6 +157,7 @@ namespace GcodeToMesh
             {
                 var tmp = GcodeToMesh.MeshDecimator.MeshDecimation.DecimateMesh(mesh, (int)(mesh.VertexCount * meshsimplifyquality));
                 tmp.name = mesh.name;
+                tmp.layer = mesh.layer;
                 meshes.Add(tmp);
 
             }
@@ -236,7 +239,16 @@ namespace GcodeToMesh
                     offset += mesh.Indices.Max() + 1;
                 }
 
-                var filename = Path.Combine(FolderToExport, modelName +"-"+ meshes[0].name  + ".obj");
+                string filename = string.Empty;
+                if (!mergeLayers)
+                {
+                    filename = Path.Combine(FolderToExport, modelName + "-" + meshes[0].name + "-" + meshes[0].layer + ".obj");
+                }
+                else
+                {
+                    filename = Path.Combine(FolderToExport, modelName + "-" + meshes[0].name + ".obj");
+                }
+
                 fileNames.Add(filename);
                 System.IO.File.WriteAllText(filename, sb.ToString());
             }
@@ -266,6 +278,7 @@ namespace GcodeToMesh
             {
                 Mesh mesh = new Mesh(part.newVertices, part.newTriangles);
                 mesh.name = part.meshname;
+                mesh.layer = part.layer;
                 mesh.Vertices = part.newVertices;
                 mesh.RecalculateNormals();
 
@@ -452,7 +465,7 @@ namespace GcodeToMesh
             meshCreatorInputQueue.Enqueue(tmp);
         }
 
-        internal MeshCreatorInput CreateRawMesh(List<Vector3> tmpmove, string name, int layer = 0)
+        internal MeshCreatorInput CreateRawMesh(List<Vector3> tmpmove, string name, int layer)
         {
             if (tmpmove.Count <= 1)
             {
@@ -590,11 +603,11 @@ namespace GcodeToMesh
             newTriangles.Add(5 + 4 * maxi);
             newTriangles.Add(6 + 4 * maxi);
 
-            var meshname = mergeLayers ? name : name + " " + layer;
 
             return new MeshCreatorInput
             {
-                meshname = meshname,
+                meshname = name,
+                layer = layer,
                 newUV = newUV.ToArray(),
                 newNormals = newNormals.ToArray(),
                 newVertices = newVertices.ToArray(),

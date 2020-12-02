@@ -9,5 +9,6 @@ namespace GcodeToMesh.MeshClasses
         public Vector3[] newNormals;
         public Vector2[] newUV;
         public int[] newTriangles;
+        public int layer;
     }
 }

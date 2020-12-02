@@ -54,6 +54,7 @@ namespace GcodeToMesh.MeshDecimator
         private Vector4[] colors = null;
         private BoneWeight[] boneWeights = null;
         public string name;
+        public int layer;
         private static readonly int[] emptyIndices = new int[0];
         #endregion
 
