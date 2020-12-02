@@ -96,7 +96,7 @@ namespace GcodeToMesh
                                 }
                                 else
                                 {
-                                    mergedMeshes[0].name += partCounter;
+                                    mergedMeshes[0].name += "-" + partCounter;
                                     SaveLayerAsObj(mergedMeshes);
                                     mergedMeshes.Clear();
                                     mergedMeshes.Add(mesh);
@@ -107,7 +107,7 @@ namespace GcodeToMesh
                             
                             if(mergedMeshes.Count > 0)
                             {
-                                mergedMeshes[0].name += partCounter;
+                                mergedMeshes[0].name += "-"+ partCounter;
                                 SaveLayerAsObj(mergedMeshes);
                                 mergedMeshes.Clear();
                             }
@@ -152,7 +152,6 @@ namespace GcodeToMesh
 
             List<Mesh> meshes = new List<Mesh>();
 
-
             foreach (var mesh in inputMeshes)
             {
                 var tmp = GcodeToMesh.MeshDecimator.MeshDecimation.DecimateMesh(mesh, (int)(mesh.VertexCount * meshsimplifyquality));
@@ -180,23 +179,6 @@ namespace GcodeToMesh
             }
         }
 
-        public void SaveLayerAsAsset(Mesh mesh, string name)
-        {
-            if (!Directory.Exists(FolderToExport))
-            {
-                Directory.CreateDirectory(FolderToExport);
-            }
-
-            //Write the mesh to disk again
-            mesh.name = name;
-
-            var filename = FolderToExport + modelName + " " + name + ".mesh";
-            fileNames.Add(filename);
-
-            File.WriteAllBytes(filename, MeshSerializer.SerializeMesh(mesh));// GOAAAL
-
-        }
-
         public void SaveLayerAsObj(List<Mesh> meshes)
         {
             if (!Directory.Exists(FolderToExport))
@@ -205,7 +187,6 @@ namespace GcodeToMesh
             }
             int offset = 0;
             StringBuilder sb = new StringBuilder();
-            int counter = 0;
 
             if (meshes.Count > 0)
             {
