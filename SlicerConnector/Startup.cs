@@ -243,7 +243,7 @@ namespace SlicerConnector
             {
                 var _websocket = websocket;
                 var gcodeAnalyser = new GcodeAnalyser();
-                gcodeAnalyser.MeshGenrerated += GcodeAnalyser_MeshGenrerated(_websocket);
+                gcodeAnalyser.MeshGenrerated += GcodeAnalyser_MeshGenrerated(_websocket, Path.GetFileNameWithoutExtension(e.SlicedFilePath));
                 gcodeAnalyser.GenerateMeshFromGcode(e.SlicedFilePath, MeshesPath);
             };
 
@@ -251,13 +251,14 @@ namespace SlicerConnector
         }
 
 
-        private EventHandler<bool> GcodeAnalyser_MeshGenrerated(WebSocket websocket)
+        private EventHandler<bool> GcodeAnalyser_MeshGenrerated(WebSocket websocket, string fileName)
         {
             Action<object, bool> action = (sender, e) =>
             {
                 var _websocket = websocket;
-                //var args = "{\"type\":\"FileSliced\",	\"Path\":\"D:\\SlicerConnector\\Meshes\\triceratops.zip\"}";
-                var args = "{\"type\":\"FileSliced\",	\"name\":\"triceratops\"}";
+                var _fileName = fileName;
+                var args = new FileSlicedMessage("/api/Download/"+ _fileName).ToString();
+
                 var tmp = Encoding.ASCII.GetBytes(args);
 
                 _websocket.SendAsync(new ArraySegment<byte>(tmp, 0, args.Length), WebSocketMessageType.Text, true, CancellationToken.None);
