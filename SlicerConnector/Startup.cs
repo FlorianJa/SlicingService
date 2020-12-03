@@ -82,7 +82,7 @@ namespace SlicerConnector
                 var downloadFullPath = Path.Combine(ModelDownloadPath, e.Payload.name);
                 bool res = true;
                 // check if the same exact file is available locally and can be consumed directly without downloading it again
-                if (await CheckForFileDifference(downloadFullPath, e.Payload))
+                if (await CheckForFileDifference(downloadFullPath, e.Payload.path, e.Payload.storage))
                     res = await os.FileOperations.DownloadFileAsync(e.Payload.storage + "/" + e.Payload.path, downloadFullPath);
 
                 if (res)
@@ -92,20 +92,23 @@ namespace SlicerConnector
             }
         }
 
-        private async Task<bool> CheckForFileDifference(string downloadFullPath, Payload ePayload)
+        private async Task<bool> CheckForFileDifference(string downloadFullPath, string fileName, string location = "local")
         {
+            // file isn't on the disk 
             if (!System.IO.File.Exists(downloadFullPath))
                 return true;
             else
             {
-                var path = ePayload.path;
-                var location = ePayload.storage;
-                var fileInfo = await os.FileOperations.GetFileInfoAsync(location, path);
+                // get file information from Octoprint
+                var fileInfo = await os.FileOperations.GetFileInfoAsync(location, fileName);
+                if (fileInfo != null)
+                {
+                    var octoSize = fileInfo.size;
+                    var localSize = new FileInfo(downloadFullPath).Length;
+                    if (octoSize != localSize)
+                        return true;
+                }
 
-                var octoSize = fileInfo.size;
-                var localSize = new FileInfo(downloadFullPath).Length;
-                if (octoSize != localSize)
-                    return true;
             }
 
 
@@ -242,15 +245,30 @@ namespace SlicerConnector
                         //await webSocket.SendAsync(new ArraySegment<byte>(tmp, 0, args.Data.Length), result.MessageType, result.EndOfMessage, CancellationToken.None);
                     };
 
-                    if (File.Exists(Path.Combine(ModelDownloadPath, commands.File)))
+                    var localPath = Path.Combine(ModelDownloadPath, commands.File);
+                    if (await CheckForFileDifference(localPath, commands.File))
                     {
-                        commands.File = Path.Combine(ModelDownloadPath, commands.File);
-                        await prusaSlicerBroker.SliceAsync(commands);
+                        var res = await os.FileOperations.DownloadFileAsync("local/" + commands.File, localPath);
+
+                        //downloading failed
+                        if (!res)
+                        {
+                            string error = "The requested file was not found on Octoprint";
+                            var errorMessage = Encoding.ASCII.GetBytes("{" + error + "}");
+                            await webSocket.SendAsync(new ArraySegment<byte>(errorMessage, 0, errorMessage.Length), result.MessageType, result.EndOfMessage, CancellationToken.None);
+                        }
+                        else
+                        {
+                            commands.File = localPath;
+                            await prusaSlicerBroker.SliceAsync(commands);
+                        }
 
                     }
+                    // use the local file on the disk
                     else
                     {
-                        // download file and slice afterwards
+                        commands.File = localPath;
+                        await prusaSlicerBroker.SliceAsync(commands);
                     }
                 }
 
