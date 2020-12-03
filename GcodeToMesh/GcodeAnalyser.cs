@@ -40,6 +40,7 @@ namespace GcodeToMesh
         private bool working = false;
         private ConcurrentBag<string> fileNames;
         private bool mergeLayers = true;
+        private bool ExportAsOBJ = true;
 
         public event EventHandler<bool> MeshGenrerated;
 
@@ -97,18 +98,32 @@ namespace GcodeToMesh
                                 else
                                 {
                                     mergedMeshes[0].name += "-" + partCounter;
-                                    SaveLayerAsObj(mergedMeshes);
+                                    if (ExportAsOBJ)
+                                    {
+                                        SaveLayerAsObj(mergedMeshes);
+                                    }
+                                    else
+                                    {
+                                        SaveLayerAsAsset(mergedMeshes);
+                                    }
                                     mergedMeshes.Clear();
                                     mergedMeshes.Add(mesh);
                                     partCounter++;
                                     triangleCount = mesh.TriangleCount;
                                 }
                             }
-                            
-                            if(mergedMeshes.Count > 0)
+
+                            if (mergedMeshes.Count > 0)
                             {
-                                mergedMeshes[0].name += "-"+ partCounter;
-                                SaveLayerAsObj(mergedMeshes);
+                                mergedMeshes[0].name += "-" + partCounter;
+                                if (ExportAsOBJ)
+                                {
+                                    SaveLayerAsObj(mergedMeshes);
+                                }
+                                else
+                                {
+                                    SaveLayerAsAsset(mergedMeshes);
+                                }
                                 mergedMeshes.Clear();
                             }
                         
@@ -139,6 +154,8 @@ namespace GcodeToMesh
             }
         }
 
+        
+
         private void DeleteGcodeFiles()
         {
             foreach (var file in fileNames)
@@ -165,7 +182,7 @@ namespace GcodeToMesh
             {
                 foreach (var mesh in meshes)
                 {
-                    if(!toMergeMeshes.ContainsKey(mesh.name))
+                    if (!toMergeMeshes.ContainsKey(mesh.name))
                     {
                         toMergeMeshes.TryAdd(mesh.name, new ConcurrentBag<Mesh>());
                     }
@@ -175,11 +192,53 @@ namespace GcodeToMesh
             }
             else
             {
-                SaveLayerAsObj(meshes);
+                if (ExportAsOBJ)
+                {
+                    SaveLayerAsObj(meshes);
+                }
+                else
+                {
+                    SaveLayerAsAsset(meshes);
+                }
             }
         }
+        private void SaveLayerAsAsset(List<Mesh> meshes)
+        {
+            if (!Directory.Exists(FolderToExport))
+            {
+                Directory.CreateDirectory(FolderToExport);
+            }
 
-        public void SaveLayerAsObj(List<Mesh> meshes)
+            string fileName;
+            var tmpVertices = new List<Vector3d>();
+            var tmpIndices = new List<int>();
+            foreach (var mesh in meshes)
+            {
+                if (mergeLayers)
+                {
+                    tmpVertices.AddRange(mesh.Vertices);
+                    tmpIndices.AddRange(mesh.Indices); 
+                }
+                else
+                {
+                    fileName = Path.Combine(FolderToExport, modelName + "-" + meshes[0].name + "-" + meshes[0].layer + ".mesh");
+                    fileNames.Add(fileName);
+                    //Write the mesh to disk again
+                    File.WriteAllBytes(Path.Combine(FolderToExport, fileName), MeshSerializer.SerializeMesh(mesh));
+                }
+            }
+
+            if (mergeLayers)
+            {
+                fileName = Path.Combine(FolderToExport, modelName + "-" + meshes[0].name + ".mesh");
+                fileNames.Add(fileName);
+                var exportMesh = new Mesh(tmpVertices.ToArray(),tmpIndices.ToArray());
+                exportMesh.RecalculateNormals();
+                File.WriteAllBytes(Path.Combine(FolderToExport, fileName), MeshSerializer.SerializeMesh(exportMesh));
+            }
+
+        }
+            public void SaveLayerAsObj(List<Mesh> meshes)
         {
             if (!Directory.Exists(FolderToExport))
             {
@@ -220,18 +279,18 @@ namespace GcodeToMesh
                     offset += mesh.Indices.Max() + 1;
                 }
 
-                string filename = string.Empty;
+                string fileName = string.Empty;
                 if (!mergeLayers)
                 {
-                    filename = Path.Combine(FolderToExport, modelName + "-" + meshes[0].name + "-" + meshes[0].layer + ".obj");
+                    fileName = Path.Combine(FolderToExport, modelName + "-" + meshes[0].name + "-" + meshes[0].layer + ".obj");
                 }
                 else
                 {
-                    filename = Path.Combine(FolderToExport, modelName + "-" + meshes[0].name + ".obj");
+                    fileName = Path.Combine(FolderToExport, modelName + "-" + meshes[0].name + ".obj");
                 }
 
-                fileNames.Add(filename);
-                System.IO.File.WriteAllText(filename, sb.ToString());
+                fileNames.Add(fileName);
+                System.IO.File.WriteAllText(fileName, sb.ToString());
             }
         }
 
