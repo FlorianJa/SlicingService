@@ -19,6 +19,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using OctoPrintLib;
+using OctoPrintLib.Messages;
 using SlicingBroker;
 
 namespace SlicerConnector
@@ -80,7 +81,8 @@ namespace SlicerConnector
 
                 var downloadFullPath = Path.Combine(ModelDownloadPath, e.Payload.name);
                 bool res = true;
-                if (!System.IO.File.Exists(downloadFullPath))
+                // check if the same exact file is available locally and can be consumed directly without downloading it again
+                if (await CheckForFileDifference(downloadFullPath, e.Payload))
                     res = await os.FileOperations.DownloadFileAsync(e.Payload.storage + "/" + e.Payload.path, downloadFullPath);
 
                 if (res)
@@ -88,6 +90,27 @@ namespace SlicerConnector
                     SliceWithDefaultParameters(downloadFullPath);
                 }
             }
+        }
+
+        private async Task<bool> CheckForFileDifference(string downloadFullPath, Payload ePayload)
+        {
+            if (!System.IO.File.Exists(downloadFullPath))
+                return true;
+            else
+            {
+                var path = ePayload.path;
+                var location = ePayload.storage;
+                var fileInfo = await os.FileOperations.GetFileInfoAsync(location, path);
+
+                var octoSize = fileInfo.size;
+                var localSize = new FileInfo(downloadFullPath).Length;
+                if (octoSize != localSize)
+                    return true;
+            }
+
+
+            return false;
+
         }
 
         private void SliceWithDefaultParameters(string inputFile)
@@ -257,7 +280,7 @@ namespace SlicerConnector
             {
                 var _websocket = websocket;
                 var _fileName = fileName;
-                var args = new FileSlicedMessage("/api/Download/"+ _fileName).ToString();
+                var args = new FileSlicedMessage("/api/Download/" + _fileName).ToString();
 
                 var tmp = Encoding.ASCII.GetBytes(args);
 
