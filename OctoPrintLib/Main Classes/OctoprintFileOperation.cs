@@ -40,6 +40,10 @@ namespace OctoPrintLib.Operations
                 try
                 {
                     var str = "http://" + server.DomainNmaeOrIp + "/downloads/files/" + remoteLocation;
+                    var fileName = Path.GetFileName(localDownloadPath);
+                    if (await GetFileInfoAsync(remoteLocation, fileName) == null)
+                        throw new FileNotFoundException($"the file {fileName} was not found in Octoprint");
+
                     await webclient.DownloadFileTaskAsync(new Uri(str), localDownloadPath);
                     //SetDownloadedFileLocalInformation(downloadPath);
                 }
@@ -79,8 +83,9 @@ namespace OctoPrintLib.Operations
                 {
                     case HttpStatusCode.NotFound:
                         Debug.WriteLine("searched for a file that wasn't there at " + path);
-                        return null;
+                        break;
                 }
+                return null;
             }
             return JsonConvert.DeserializeObject<OctoprintFile>(jobInfo);
         }
