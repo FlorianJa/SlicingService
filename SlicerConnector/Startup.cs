@@ -253,9 +253,9 @@ namespace SlicerConnector
                         //downloading failed
                         if (!res)
                         {
-                            string error = "The requested file was not found on Octoprint";
-                            var errorMessage = Encoding.ASCII.GetBytes("{" + error + "}");
-                            await webSocket.SendAsync(new ArraySegment<byte>(errorMessage, 0, errorMessage.Length), result.MessageType, result.EndOfMessage, CancellationToken.None);
+                            var error = new ErrorMessage($"The requested file ({commands.File}) was not found on Octoprint").ToString();
+                            var errorBytes = Encoding.ASCII.GetBytes(error);
+                            await webSocket.SendAsync(new ArraySegment<byte>(errorBytes, 0, error.Length), WebSocketMessageType.Text, true, CancellationToken.None);
                         }
                         else
                         {

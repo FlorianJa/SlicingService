@@ -28,4 +28,13 @@ namespace SlicerConnector
 
         
     }
+
+    public class ErrorMessage : JsonMessage<string>
+    {
+        public ErrorMessage(string payload)
+        {
+            MessageType = "Error";
+            Payload = payload;
+        }
+    }
 }
