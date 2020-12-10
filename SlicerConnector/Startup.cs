@@ -217,7 +217,7 @@ namespace SlicerConnector
                     {
                         var slicingProgressMessage = new SlicingProgressMessage(args.Data).ToString();
                         var slicingProgressMessageBytes = Encoding.ASCII.GetBytes(slicingProgressMessage);
-                        await webSocket.SendAsync(new ArraySegment<byte>(slicingProgressMessageBytes, 0, args.Data.Length), WebSocketMessageType.Text, true, CancellationToken.None);
+                        await webSocket.SendAsync(new ArraySegment<byte>(slicingProgressMessageBytes, 0, slicingProgressMessage.Length), WebSocketMessageType.Text, true, CancellationToken.None);
                     };
 
                     if (File.Exists(Path.Combine(ModelDownloadPath, commands.File)))
