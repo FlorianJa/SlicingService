@@ -32,10 +32,10 @@ namespace SlicingBroker
         {
             //request entry to the function if there is no one else using it
             await semaphore.WaitAsync();
-
             isBusy = true;
             var arguments = commands.ToString();
             eventHandled = new TaskCompletionSource<bool>();
+            int errorsReceived = 0;
             using (slicingProcess = new Process())
             {
                 try
@@ -52,9 +52,7 @@ namespace SlicingBroker
                     slicingProcess.Exited += (sender, args) =>
                     {
                         eventHandled.TrySetResult(true);
-                        FileSliced?.Invoke(this,
-                            new FileSlicedArgs(Path.Combine(commands.Output,
-                                Path.GetFileNameWithoutExtension(commands.File) + ".gcode")));
+                        CheckFileSliced(commands, errorsReceived);
 
                         //release the locking of the function so that the other callers who are waiting can get to it one by one.
                         semaphore.Release();
@@ -71,13 +69,14 @@ namespace SlicingBroker
                     {
                         if (!String.IsNullOrEmpty(args.Data))
                         {
+                            errorsReceived++;
                             OutputDataReceived(args);
                         }
                     };
 
                     slicingProcess.StartInfo = psi;
                     slicingProcess.EnableRaisingEvents = true;
-                    
+
                     slicingProcess.Start();
 
                     // Asynchronously read the standard output of the spawned process.
@@ -97,6 +96,24 @@ namespace SlicingBroker
 
 
             isBusy = false;
+        }
+
+        private void CheckFileSliced(PrusaSlicerCLICommands commands, int errorsReceived)
+        {
+            if (errorsReceived > 0)
+                return;
+
+            var slicedFilePath =
+                Path.Combine(commands.Output, Path.GetFileNameWithoutExtension(commands.File) + ".gcode");
+            if (!File.Exists(slicedFilePath))
+                return;
+
+            var fileSize = new FileInfo(slicedFilePath).Length;
+            if (fileSize==0)
+                return;
+
+            FileSliced?.Invoke(this,
+                new FileSlicedArgs(slicedFilePath));
         }
 
         private void OutputDataReceived(DataReceivedEventArgs args)
