@@ -83,7 +83,7 @@ namespace SlicerConnector
                 bool res = true;
                 // check if the same exact file is available locally and can be consumed directly without downloading it again
                 if (await CheckForFileDifference(downloadFullPath, e.Payload.path, e.Payload.storage))
-                    res = await os.FileOperations.DownloadFileAsync(e.Payload.storage + "/" + e.Payload.path, downloadFullPath);
+                    res = await os.FileOperations.DownloadFileAsync(e.Payload.storage , e.Payload.path, downloadFullPath);
 
                 if (res)
                 {
@@ -248,7 +248,7 @@ namespace SlicerConnector
                     var localPath = Path.Combine(ModelDownloadPath, commands.File);
                     if (await CheckForFileDifference(localPath, commands.File))
                     {
-                        var res = await os.FileOperations.DownloadFileAsync("local/" + commands.File, localPath);
+                        var res = await os.FileOperations.DownloadFileAsync("local" , commands.File, localPath);
 
                         //downloading failed
                         if (!res)
