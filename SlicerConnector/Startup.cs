@@ -241,8 +241,9 @@ namespace SlicerConnector
 
                     prusaSlicerBroker.DataReceived += async (sender, args) =>
                     {
-                        //var tmp = Encoding.ASCII.GetBytes("{" + args.Data +"}");
-                        //await webSocket.SendAsync(new ArraySegment<byte>(tmp, 0, args.Data.Length), result.MessageType, result.EndOfMessage, CancellationToken.None);
+                        var slicingProgressMessage = new SlicingProgressMessage(args.Data).ToString();
+                        var slicingProgressMessageBytes = Encoding.ASCII.GetBytes(slicingProgressMessage);
+                        await webSocket.SendAsync(new ArraySegment<byte>(slicingProgressMessageBytes, 0, slicingProgressMessage.Length), WebSocketMessageType.Text, true, CancellationToken.None);
                     };
 
                     var localPath = Path.Combine(ModelDownloadPath, commands.File);

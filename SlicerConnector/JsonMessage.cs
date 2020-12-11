@@ -29,6 +29,16 @@ namespace SlicerConnector
         
     }
 
+    public class SlicingProgressMessage : JsonMessage<string>
+    {
+        public SlicingProgressMessage(string payload)
+        {
+            MessageType = "SlicingProgress";
+            Payload = payload;
+        }
+    }
+
+
     public class ErrorMessage : JsonMessage<string>
     {
         public ErrorMessage(string payload)
