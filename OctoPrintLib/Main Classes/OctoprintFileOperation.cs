@@ -31,7 +31,7 @@ namespace OctoPrintLib.Operations
         /// </summary>
         /// <param name="remoteLocation">Localtion of file on Octoprint (location without base URL)</param>
         /// <param name="localDownloadPath">Full path (with</param>
-        public async Task<bool> DownloadFileAsync(string remoteLocation, string localDownloadPath)
+        public async Task<bool> DownloadFileAsync(string remoteLocation, string filename, string localDownloadPath)
         {
             using (WebClient webclient = new WebClient())
             {
@@ -39,7 +39,11 @@ namespace OctoPrintLib.Operations
 
                 try
                 {
-                    var str = "http://" + server.DomainNmaeOrIp + "/downloads/files/" + remoteLocation;
+                    var remotePath = remoteLocation + "/" + filename;
+                    var str = "http://" + server.DomainNmaeOrIp + "/downloads/files/" + remotePath;
+                    if (await GetFileInfoAsync(remoteLocation, filename) == null)
+                        throw new FileNotFoundException($"the file {filename} was not found in Octoprint");
+
                     await webclient.DownloadFileTaskAsync(new Uri(str), localDownloadPath);
                     //SetDownloadedFileLocalInformation(downloadPath);
                 }
@@ -79,8 +83,9 @@ namespace OctoPrintLib.Operations
                 {
                     case HttpStatusCode.NotFound:
                         Debug.WriteLine("searched for a file that wasn't there at " + path);
-                        return null;
+                        break;
                 }
+                return null;
             }
             return JsonConvert.DeserializeObject<OctoprintFile>(jobInfo);
         }
