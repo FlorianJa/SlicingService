@@ -62,7 +62,13 @@ namespace SlicerConnector
             MeshesPath = Path.Combine(BasePath, "Meshes");
 
             if (!File.Exists(slicerPath))
+            {
+                string msg = "The slicer application was not found in the indicated place. \n " +
+                             "Consider checking if the application instance exits in the same path you provided in the 'appsettings.json' file. \n";
+                Console.WriteLine(msg);
                 throw new FileNotFoundException("The slicer application is not found in the given path");
+            }
+                
 
             if (!Directory.Exists(ModelDownloadPath))
                 Directory.CreateDirectory(ModelDownloadPath);
