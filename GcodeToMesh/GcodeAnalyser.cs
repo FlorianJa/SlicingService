@@ -48,6 +48,7 @@ namespace GcodeToMesh
         {
             if (!working)
             {
+                Console.WriteLine("Mesh generation stated.");
                 fileNames = new ConcurrentBag<string>();
                 modelName = Path.GetFileNameWithoutExtension(path);
                 working = true;
@@ -146,10 +147,12 @@ namespace GcodeToMesh
                 }).ContinueWith((task) => {
                     GC.Collect();
                 });
-                
+
+                Console.WriteLine("Mesh generation done.");
             }
             else
             {
+                Console.WriteLine("There is already a mesh generation in progess.");
                 MeshGenrerated?.Invoke(this, false);
             }
         }

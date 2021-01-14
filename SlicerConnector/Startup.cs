@@ -136,8 +136,8 @@ namespace SlicerConnector
 
         private async void PrusaSlicerBroker_FileSliced(object sender, FileSlicedArgs e)
         {
-            await UploadGCodeAsync(e.SlicedFilePath);
             GenerateMeshFromGcode(e.SlicedFilePath);
+            await UploadGCodeAsync(e.SlicedFilePath);
         }
 
 
@@ -149,9 +149,9 @@ namespace SlicerConnector
 
         private void GenerateMeshFromGcode(string slicedFilePath)
         {
-            //var gcodeAnalyser = new GcodeAnalyser();
+            var gcodeAnalyser = new GcodeAnalyser();
             //gcodeAnalyser.MeshGenrerated += GcodeAnalyser_MeshGenrerated;
-            //gcodeAnalyser.GenerateMeshFromGcode(slicedFilePath, MeshesPath);
+            gcodeAnalyser.GenerateMeshFromGcode(slicedFilePath, MeshesPath);
         }
 
         //private void GcodeAnalyser_MeshGenrerated(object sender, bool e)
@@ -281,12 +281,13 @@ namespace SlicerConnector
 
         private EventHandler<FileSlicedArgs> PrusaSlicerBroker_FileSliced(WebSocket websocket)
         {
-            Action<object, FileSlicedArgs> action = (sender, e) =>
+            Action<object, FileSlicedArgs> action = async (sender, e) =>
             {
                 var _websocket = websocket;
                 var gcodeAnalyser = new GcodeAnalyser();
                 gcodeAnalyser.MeshGenrerated += GcodeAnalyser_MeshGenrerated(_websocket, Path.GetFileNameWithoutExtension(e.SlicedFilePath));
                 gcodeAnalyser.GenerateMeshFromGcode(e.SlicedFilePath, MeshesPath);
+                await UploadGCodeAsync(e.SlicedFilePath);
             };
 
             return new EventHandler<FileSlicedArgs>(action);

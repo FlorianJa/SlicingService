@@ -139,7 +139,7 @@ namespace OctoPrintLib
         private void HandleWebSocketData(string data)
         {
             var messageType = GetMessageType(data);
-
+            //Console.WriteLine(data);
             switch (messageType)
             {
                 case MessageType.Connected:

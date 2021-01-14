@@ -32,6 +32,8 @@ namespace SlicingBroker
         {
             //request entry to the function if there is no one else using it
             await semaphore.WaitAsync();
+            Console.WriteLine("Slicing started.");
+            Console.WriteLine(commands.ToString());
             isBusy = true;
             var arguments = commands.ToString();
             eventHandled = new TaskCompletionSource<bool>();
@@ -56,6 +58,7 @@ namespace SlicingBroker
 
                         //release the locking of the function so that the other callers who are waiting can get to it one by one.
                         semaphore.Release();
+                        Console.WriteLine("Slicing done.");
                         isBusy = false;
                     };
                     slicingProcess.OutputDataReceived += (sender, args) =>
