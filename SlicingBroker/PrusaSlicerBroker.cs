@@ -23,6 +23,8 @@ namespace SlicingBroker
         private static SemaphoreSlim semaphore = new SemaphoreSlim(1);
         private bool isBusy = false;
 
+        private string GCodePath = null;
+
         public PrusaSlicerBroker(string localSlicerPath)
         {
             SlicerPath = localSlicerPath;
@@ -54,8 +56,17 @@ namespace SlicingBroker
                     slicingProcess.Exited += (sender, args) =>
                     {
                         eventHandled.TrySetResult(true);
-                        CheckFileSliced(commands, errorsReceived);
+                        FileSlicedArgs eventArgs;
+                        if (CheckFileSliced(commands, errorsReceived))
+                        {
+                            eventArgs = new  FileSlicedArgs(true, GCodePath);
+                        }
+                        else
+                        {
+                            eventArgs = new FileSlicedArgs(false);
+                        }
 
+                        FileSliced?.Invoke(this, eventArgs);
                         //release the locking of the function so that the other callers who are waiting can get to it one by one.
                         semaphore.Release();
                         Console.WriteLine("Slicing done.");
@@ -65,6 +76,13 @@ namespace SlicingBroker
                     {
                         if (!String.IsNullOrEmpty(args.Data))
                         {
+                            Debug.WriteLine("Output: " + args.Data);
+
+                            if(args.Data.StartsWith("Slicing result exported to"))
+                            {
+                                GCodePath = args.Data.Substring(27);
+                            }
+
                             OutputDataReceived(args);
                         }
                     };
@@ -73,6 +91,7 @@ namespace SlicingBroker
                         if (!String.IsNullOrEmpty(args.Data))
                         {
                             errorsReceived++;
+                            Debug.WriteLine("Error: " + args.Data);
                             OutputDataReceived(args);
                         }
                     };
@@ -101,22 +120,26 @@ namespace SlicingBroker
             isBusy = false;
         }
 
-        private void CheckFileSliced(PrusaSlicerCLICommands commands, int errorsReceived)
+        private bool CheckFileSliced(PrusaSlicerCLICommands commands, int errorsReceived)
         {
+            bool ret = true;
             if (errorsReceived > 0)
-                return;
+                ret = false;
 
-            var slicedFilePath =
-                Path.Combine(commands.Output, Path.GetFileNameWithoutExtension(commands.File) + ".gcode");
-            if (!File.Exists(slicedFilePath))
-                return;
+            //var slicedFilePath =
+            //    Path.Combine(commands.Output, Path.GetFileNameWithoutExtension(commands.File) + ".gcode");
+            if (GCodePath == null)
+                ret = false;
+            if (!File.Exists(GCodePath))
+                ret = false;
 
-            var fileSize = new FileInfo(slicedFilePath).Length;
+            var fileSize = new FileInfo(GCodePath).Length;
             if (fileSize==0)
-                return;
+                ret = false;
 
-            FileSliced?.Invoke(this,
-                new FileSlicedArgs(slicedFilePath));
+
+            return ret;
+            
         }
 
         private void OutputDataReceived(DataReceivedEventArgs args)

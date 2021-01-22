@@ -247,6 +247,11 @@ namespace SlicerConnector
                 }
                 if (commands.isValid())
                 {
+                    if (commands.LoadConfigFile != null)
+                    {
+                        commands.LoadConfigFile = Path.Combine(SlicingConfigPath, commands.LoadConfigFile);
+                    }
+
                     var prusaSlicerBroker = new PrusaSlicerBroker(slicerPath);
                     prusaSlicerBroker.FileSliced += PrusaSlicerBroker_FileSliced(webSocket);
 
