@@ -23,6 +23,7 @@ To get your development environment running you need to:
 |Tag Name        |Property to change            |What to do                   |
 |----------------|------------------------------|-----------------------------|
 |Slicer          |`"Path"`                      |Put the path of the Prusa slicer console on your machine                      |
+|Slicer          |`"ConfigPath"`                |Put the path for additional config files (.ini). This path is optional        |
 |OctoPrint       |`"DomainNameOrIP"`            |Put the current domain of the running instance of Octoprint                   |
 |OctoPrint       |`"APIKey"`                    |Put your obtained Octoprint API key                                           |
 |OctoPrint       |`"BasePath"`                  |Put the local path on your hard drive that you want to download/slice files at|
