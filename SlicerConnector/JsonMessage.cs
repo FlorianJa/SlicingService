@@ -47,4 +47,13 @@ namespace SlicerConnector
             Payload = payload;
         }
     }
+
+    public class ProfileListMessage : JsonMessage<List<string>>
+    {
+        public ProfileListMessage(List<string> payload)
+        {
+            MessageType = "Profiles";
+            Payload = payload;
+        }
+    }
 }

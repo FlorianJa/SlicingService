@@ -32,6 +32,8 @@ namespace SlicerConnector
         public string GCodePath { get; private set; }
         public string MeshesPath { get; private set; }
 
+        public string SlicingConfigPath { get; private set; }
+
         private OctoprintServer os;
 
         /// <summary>
@@ -56,6 +58,7 @@ namespace SlicerConnector
             OcotoprintApplicationKey = configuration.GetValue<string>("OctoPrint:APIKey");
             BasePath = configuration.GetValue<string>("OctoPrint:BasePath");
             slicerPath = configuration.GetValue<string>("Slicer:Path");
+            SlicingConfigPath = configuration.GetValue<string>("Slicer:ConfigPath");
 
             ModelDownloadPath = Path.Combine(BasePath, "Models");
             GCodePath = Path.Combine(BasePath, "GCode");
@@ -66,6 +69,9 @@ namespace SlicerConnector
 
             if (!Directory.Exists(ModelDownloadPath))
                 Directory.CreateDirectory(ModelDownloadPath);
+            
+            if (!Directory.Exists(SlicingConfigPath))
+                Directory.CreateDirectory(SlicingConfigPath);
 
 
             os = new OctoprintServer(OctoPrintDomainNameOrIP, OcotoprintApplicationKey);
@@ -220,6 +226,11 @@ namespace SlicerConnector
         /// <returns></returns>
         private async Task HandleWebsocketConnection(HttpContext context, WebSocket webSocket)
         {
+
+            var profileList = new ProfileListMessage(GetConfigFileNames()).ToString();
+            var profileListBytes = Encoding.ASCII.GetBytes(profileList);
+            await webSocket.SendAsync(new ArraySegment<byte>(profileListBytes, 0, profileList.Length), WebSocketMessageType.Text, true, CancellationToken.None);
+
             var buffer = new byte[1024 * 4];
             WebSocketReceiveResult result = await webSocket.ReceiveAsync(new ArraySegment<byte>(buffer), CancellationToken.None);
 
@@ -277,6 +288,17 @@ namespace SlicerConnector
             }
 
             await webSocket.CloseAsync(result.CloseStatus.Value, result.CloseStatusDescription, CancellationToken.None);
+        }
+
+        private List<string> GetConfigFileNames()
+        {
+            var ret = new List<string>();
+
+            foreach (var path in Directory.GetFiles(SlicingConfigPath))
+            {
+                ret.Add(Path.GetFileName(path));
+            }
+            return ret;
         }
 
         private EventHandler<FileSlicedArgs> PrusaSlicerBroker_FileSliced(WebSocket websocket)
