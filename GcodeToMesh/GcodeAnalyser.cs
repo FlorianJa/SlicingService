@@ -41,6 +41,7 @@ namespace GcodeToMesh
         private ConcurrentBag<string> fileNames;
         private bool mergeLayers = true;
         private bool ExportAsOBJ = true;
+        private bool newLayer = false;
 
         public event EventHandler<bool> MeshGenrerated;
 
@@ -359,6 +360,7 @@ namespace GcodeToMesh
                         }
                         movesPerComponent.Clear();
                         currentLayerHeight = nextLayerHeight;
+                        newLayer = true;
                     }
 
                     CheckTraveling(line);
@@ -366,6 +368,7 @@ namespace GcodeToMesh
 
                     if (IsNewPart(line) && compName != string.Empty)
                     {
+                        newLayer = false;
                         if (!movesPerComponent.ContainsKey(compName))
                         {
                             movesPerComponent.Add(compName, new List<List<Vector3>>() { new List<Vector3>() });
@@ -466,7 +469,7 @@ namespace GcodeToMesh
 
         private bool IsNewPart(string line)
         {
-            return line.Contains("move to first");
+            return line.Contains("move to first") || newLayer;
         }
 
         private bool TryGetLayerHeightFromLine(string line, out float layerHeight)

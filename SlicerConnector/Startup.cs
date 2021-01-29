@@ -310,11 +310,14 @@ namespace SlicerConnector
         {
             Action<object, FileSlicedArgs> action = async (sender, e) =>
             {
-                var _websocket = websocket;
-                var gcodeAnalyser = new GcodeAnalyser();
-                gcodeAnalyser.MeshGenrerated += GcodeAnalyser_MeshGenrerated(_websocket, Path.GetFileNameWithoutExtension(e.SlicedFilePath));
-                gcodeAnalyser.GenerateMeshFromGcode(e.SlicedFilePath, MeshesPath);
-                await UploadGCodeAsync(e.SlicedFilePath);
+                if (e.Success)
+                {
+                    var _websocket = websocket;
+                    var gcodeAnalyser = new GcodeAnalyser();
+                    gcodeAnalyser.MeshGenrerated += GcodeAnalyser_MeshGenrerated(_websocket, Path.GetFileNameWithoutExtension(e.SlicedFilePath));
+                    gcodeAnalyser.GenerateMeshFromGcode(e.SlicedFilePath, MeshesPath);
+                    await UploadGCodeAsync(e.SlicedFilePath);
+                }
             };
 
             return new EventHandler<FileSlicedArgs>(action);

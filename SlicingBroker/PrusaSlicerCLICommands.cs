@@ -11,9 +11,21 @@ namespace SlicingBroker
 {
     public class PrusaSlicerCLICommands
     {
-        public static PrusaSlicerCLICommands Default { get { return new PrusaSlicerCLICommands() { ExportGCode = true, SupportMaterial = false, LayerHeight = 0.2f, FillDensity = 0.5f, GcodeComments = true, Loglevel = 3}; } }
+        public static PrusaSlicerCLICommands Default { get { return new PrusaSlicerCLICommands() { ExportGCode = true, SupportMaterial = false, LayerHeight = 0.2f, FillDensity = 0.5f, GcodeComments = true, Loglevel = 3, FillPattern = "line" }; } }
 
         #region Properties
+        [CLICommand("--raft-layers")]
+        public int? Raft { get; set; }
+
+        [CLICommand("--brim-width")]
+        public int? Brim { get; set; }
+
+        [CLICommand("--support-material-buildplate-only")]
+        public bool? SupportMaterialBuildeplateOnly { get; set; }
+
+        [CLICommand("--fill-pattern")]
+        public string FillPattern { get; set; }
+
         [CLICommand("--export-gcode")]
         public bool? ExportGCode { get; set; }
 
@@ -148,7 +160,12 @@ namespace SlicingBroker
                     }
                     else if (prop.PropertyType == typeof(string))
                     {
-                        commandBuilder.Append((string)prop.GetValue(this));
+                        var tempStr = (string)prop.GetValue(this);
+                        if (tempStr.Contains(" "))
+                        {
+                            tempStr = "\"" + tempStr + "\"";
+                        }
+                        commandBuilder.Append(tempStr);
                         commandBuilder.Append(" ");
                     }
                     else if (prop.PropertyType == typeof(int?))

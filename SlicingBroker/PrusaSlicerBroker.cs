@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Diagnostics;
 using System.IO;
 using System.Text;
@@ -129,15 +129,19 @@ namespace SlicingBroker
             //var slicedFilePath =
             //    Path.Combine(commands.Output, Path.GetFileNameWithoutExtension(commands.File) + ".gcode");
             if (GCodePath == null)
+            {
                 ret = false;
-            if (!File.Exists(GCodePath))
-                ret = false;
+            }
+            else
+            {
+                if (!File.Exists(GCodePath))
+                    ret = false;
 
-            var fileSize = new FileInfo(GCodePath).Length;
-            if (fileSize==0)
-                ret = false;
+                var fileSize = new FileInfo(GCodePath).Length;
+                if (fileSize == 0)
+                    ret = false;
 
-
+            }
             return ret;
             
         }
