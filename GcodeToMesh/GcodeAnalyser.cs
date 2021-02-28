@@ -36,6 +36,8 @@ namespace GcodeToMesh
 
         public string FolderToExport { get; private set; }
         public string modelName { get; private set; }
+        public string FilamentLegth;
+        public string PrintingTime;
 
         private bool working = false;
         private ConcurrentBag<string> fileNames;
@@ -409,12 +411,51 @@ namespace GcodeToMesh
                             movesPerComponent[compName][^1].Add(new Vector3(currentPosition.x, currentPosition.y, currentPosition.z));
                         }
                     }
+                    string tmpFilamentLength, tmpPrintingTime;
+
+                    if(TryGetFilamentLength(line, out tmpFilamentLength))
+                    {
+                        FilamentLegth = tmpFilamentLength;
+                    }
+
+                    if(TryGetPrintingTime(line, out tmpPrintingTime))
+                    {
+                        PrintingTime = tmpPrintingTime;
+                    }
                 }
             }
 
             fileRead = true;
             movesPerComponent.Clear();
             movesPerComponent = null;
+        }
+
+        private bool TryGetPrintingTime(string line, out string printTime)
+        {
+            if (line.StartsWith("; estimated printing time"))
+            {
+                printTime = line.Substring(line.IndexOf('=') + 2);
+                return true;
+            }
+            else
+            {
+                printTime = string.Empty;
+                return false;
+            }
+        }
+
+        private bool TryGetFilamentLength(string line, out string filamentLegth)
+        {
+            if(line.StartsWith("; filament used [mm] ="))
+            {
+                filamentLegth = (float.Parse(line.Substring(line.IndexOf('=') + 2), CultureInfo.InvariantCulture.NumberFormat)/1000.0).ToString("F") + "m";
+                return true;
+            }
+            else
+            {
+                filamentLegth = string.Empty;
+                return false;
+            }
         }
 
         private bool LineIsMovement(string line)

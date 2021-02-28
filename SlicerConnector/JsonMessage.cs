@@ -18,9 +18,20 @@ namespace SlicerConnector
         }
     }
 
-    public class FileSlicedMessage: JsonMessage<string>
+    public class FileSlicedMessageArgs
     {
-        public FileSlicedMessage(string payload)
+        public string File { get; set; }
+        public string FilamentLength { get; set; }
+        public string PrintTime { get; set; }
+
+        public FileSlicedMessageArgs()
+        {
+
+        }
+    }
+    public class FileSlicedMessage: JsonMessage<FileSlicedMessageArgs>
+    {
+        public FileSlicedMessage(FileSlicedMessageArgs payload)
         {
             MessageType = "FileSliced";
             Payload = payload;

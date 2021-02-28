@@ -312,11 +312,13 @@ namespace SlicerConnector
             {
                 if (e.Success)
                 {
+                    await UploadGCodeAsync(e.SlicedFilePath);
+
                     var _websocket = websocket;
                     var gcodeAnalyser = new GcodeAnalyser();
                     gcodeAnalyser.MeshGenrerated += GcodeAnalyser_MeshGenrerated(_websocket, Path.GetFileNameWithoutExtension(e.SlicedFilePath));
                     gcodeAnalyser.GenerateMeshFromGcode(e.SlicedFilePath, MeshesPath);
-                    await UploadGCodeAsync(e.SlicedFilePath);
+                   
                 }
             };
 
@@ -330,7 +332,10 @@ namespace SlicerConnector
             {
                 var _websocket = websocket;
                 var _fileName = fileName;
-                var args = new FileSlicedMessage("/api/Download/" + _fileName).ToString();
+                var args = new FileSlicedMessage(new FileSlicedMessageArgs() { 
+                    File = ("/api/Download/" + _fileName).ToString(), 
+                    FilamentLength= (sender as GcodeAnalyser).FilamentLegth, 
+                    PrintTime = (sender as GcodeAnalyser).PrintingTime }).ToString();
 
                 var tmp = Encoding.ASCII.GetBytes(args);
 
