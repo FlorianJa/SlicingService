@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Net;
 using System.Net.WebSockets;
 using System.Text;
 using System.Text.Json;
@@ -27,6 +28,7 @@ namespace SlicerConnector
     public class Startup
     {
         private string slicerPath;
+        private string BasePath;
 
         public string ModelDownloadPath { get; private set; }
         public string GCodePath { get; private set; }
@@ -34,138 +36,36 @@ namespace SlicerConnector
 
         public string SlicingConfigPath { get; private set; }
 
-        private OctoprintServer os;
 
-        /// <summary>
-        /// Domain name or IP of the OctoprintServer. Do not add protocol like http:// or https://. If a different Port than 80 is needed, specify it by :PORTNUMBER
-        /// </summary>
-        private string OctoPrintDomainNameOrIP;
+        public IConfiguration Configuration { get; }
 
-        /// <summary>
-        /// Application key for accessing th ocotprint
-        /// </summary>
-        private string OcotoprintApplicationKey;
-
-
-        private string BasePath;
 
         public Startup(IConfiguration configuration)
         {
             Configuration = configuration;
-            var tmp = Configuration as ConfigurationRoot;
 
-            OctoPrintDomainNameOrIP = configuration.GetValue<string>("OctoPrint:DomainNameOrIP");
-            OcotoprintApplicationKey = configuration.GetValue<string>("OctoPrint:APIKey");
-            BasePath = configuration.GetValue<string>("OctoPrint:BasePath");
+            BasePath = configuration.GetValue<string>("BasePath");
             slicerPath = configuration.GetValue<string>("Slicer:Path");
             SlicingConfigPath = configuration.GetValue<string>("Slicer:ConfigPath");
 
             ModelDownloadPath = Path.Combine(BasePath, "Models");
             GCodePath = Path.Combine(BasePath, "GCode");
-            MeshesPath = Path.Combine(BasePath, "Meshes");
 
-            if (!File.Exists(slicerPath))
-                throw new FileNotFoundException("The slicer application is not found in the given path");
+            if (!Directory.Exists(GCodePath))
+            {
+                Directory.CreateDirectory(GCodePath);
+            }
 
             if (!Directory.Exists(ModelDownloadPath))
+            {
                 Directory.CreateDirectory(ModelDownloadPath);
-            
+            }
+
             if (!Directory.Exists(SlicingConfigPath))
+            {
                 Directory.CreateDirectory(SlicingConfigPath);
-
-
-            os = new OctoprintServer(OctoPrintDomainNameOrIP, OcotoprintApplicationKey);
-            os.FileAdded += Os_FileAdded;
-            var x = os.GeneralOperations.Login();
-            os.StartWebsocketAsync(x.name, x.session);
-        }
-
-        private async void Os_FileAdded(object sender, FileAddedEventArgs e)
-        {
-            if (e.Payload.type[0] == "model")
-            {
-
-                var downloadFullPath = Path.Combine(ModelDownloadPath, e.Payload.name);
-                bool res = true;
-                // check if the same exact file is available locally and can be consumed directly without downloading it again
-                if (await CheckForFileDifference(downloadFullPath, e.Payload.path, e.Payload.storage))
-                    res = await os.FileOperations.DownloadFileAsync(e.Payload.storage , e.Payload.path, downloadFullPath);
-
-                if (res)
-                {
-                    SliceWithDefaultParameters(downloadFullPath);
-                }
             }
         }
-
-        private async Task<bool> CheckForFileDifference(string downloadFullPath, string fileName, string location = "local")
-        {
-            // file isn't on the disk 
-            if (!System.IO.File.Exists(downloadFullPath))
-                return true;
-            else
-            {
-                // get file information from Octoprint
-                var fileInfo = await os.FileOperations.GetFileInfoAsync(location, fileName);
-                if (fileInfo != null)
-                {
-                    var octoSize = fileInfo.size;
-                    var localSize = new FileInfo(downloadFullPath).Length;
-                    if (octoSize != localSize)
-                        return true;
-                }
-
-            }
-
-
-            return false;
-
-        }
-
-        private void SliceWithDefaultParameters(string inputFile)
-        {
-            Task.Run(async () =>
-            {
-                PrusaSlicerCLICommands commands = PrusaSlicerCLICommands.Default;
-                commands.Output = GCodePath;
-                if (!Directory.Exists(commands.Output))
-                {
-                    Directory.CreateDirectory(commands.Output);
-                }
-
-                commands.File = inputFile;
-                var prusaSlicerBroker = new PrusaSlicerBroker(slicerPath);
-                prusaSlicerBroker.FileSliced += PrusaSlicerBroker_FileSliced;
-                await prusaSlicerBroker.SliceAsync(commands);
-            });
-        }
-
-        private async void PrusaSlicerBroker_FileSliced(object sender, FileSlicedArgs e)
-        {
-            GenerateMeshFromGcode(e.SlicedFilePath);
-            await UploadGCodeAsync(e.SlicedFilePath);
-        }
-
-
-        private async Task UploadGCodeAsync(string slicedFilePath)
-        {
-            await os.FileOperations.UploadFileAsync(slicedFilePath);
-
-        }
-
-        private void GenerateMeshFromGcode(string slicedFilePath)
-        {
-            var gcodeAnalyser = new GcodeAnalyser();
-            //gcodeAnalyser.MeshGenrerated += GcodeAnalyser_MeshGenrerated;
-            gcodeAnalyser.GenerateMeshFromGcode(slicedFilePath, MeshesPath);
-        }
-
-        //private void GcodeAnalyser_MeshGenrerated(object sender, bool e)
-        //{
-
-        //}
-
-        public IConfiguration Configuration { get; }
 
         // This method gets called by the runtime. Use this method to add services to the container.
         public void ConfigureServices(IServiceCollection services)
@@ -202,7 +102,7 @@ namespace SlicerConnector
                     {
                         using (WebSocket webSocket = await context.WebSockets.AcceptWebSocketAsync())
                         {
-                            await HandleWebsocketConnection(context, webSocket);
+                            await HandleWebsocketConnectionAsync(context, webSocket);
                         }
                     }
                     else
@@ -224,86 +124,110 @@ namespace SlicerConnector
         /// <param name="context"></param>
         /// <param name="webSocket"></param>
         /// <returns></returns>
-        private async Task HandleWebsocketConnection(HttpContext context, WebSocket webSocket)
+        private async Task HandleWebsocketConnectionAsync(HttpContext context, WebSocket webSocket)
         {
+            StringBuilder stringbuilder = new StringBuilder();
 
-            var profileList = new ProfileListMessage(GetConfigFileNames()).ToString();
-            var profileListBytes = Encoding.ASCII.GetBytes(profileList);
-            await webSocket.SendAsync(new ArraySegment<byte>(profileListBytes, 0, profileList.Length), WebSocketMessageType.Text, true, CancellationToken.None);
+            await SendWelcomeMessage(webSocket);
+            await SendSlicingProfils(webSocket);
 
             var buffer = new byte[1024 * 4];
-            WebSocketReceiveResult result = await webSocket.ReceiveAsync(new ArraySegment<byte>(buffer), CancellationToken.None);
 
-            while (!result.CloseStatus.HasValue)
+            while (webSocket.State == WebSocketState.Open)
             {
-                var receivedAsJson = Encoding.ASCII.GetString(buffer, 0, result.Count);
-
-                //convert json to object
-                PrusaSlicerCLICommands commands = JsonSerializer.Deserialize<PrusaSlicerCLICommands>(receivedAsJson, new JsonSerializerOptions() { IgnoreNullValues = true });
-                commands.Output = GCodePath;
-                if (!Directory.Exists(commands.Output))
+                WebSocketReceiveResult received = await webSocket.ReceiveAsync(new ArraySegment<byte>(buffer), CancellationToken.None);
+                string text = Encoding.UTF8.GetString(buffer, 0, received.Count);
+                stringbuilder.Append(text);
+                if (received.EndOfMessage)
                 {
-                    Directory.CreateDirectory(commands.Output);
+                    await HandleWebSocketDataAsync(webSocket, stringbuilder.ToString());
+                    stringbuilder.Clear();
                 }
-                if (commands.isValid())
-                {
-                    if (commands.LoadConfigFile != null)
-                    {
-                        commands.LoadConfigFile = Path.Combine(SlicingConfigPath, commands.LoadConfigFile);
-                    }
-
-                    var prusaSlicerBroker = new PrusaSlicerBroker(slicerPath);
-                    prusaSlicerBroker.FileSliced += PrusaSlicerBroker_FileSliced(webSocket);
-
-                    prusaSlicerBroker.DataReceived += async (sender, args) =>
-                    {
-                        var slicingProgressMessage = new SlicingProgressMessage(args.Data).ToString();
-                        var slicingProgressMessageBytes = Encoding.ASCII.GetBytes(slicingProgressMessage);
-                        await webSocket.SendAsync(new ArraySegment<byte>(slicingProgressMessageBytes, 0, slicingProgressMessage.Length), WebSocketMessageType.Text, true, CancellationToken.None);
-                    };
-
-                    var localPath = Path.Combine(ModelDownloadPath, commands.File);
-                    if (await CheckForFileDifference(localPath, commands.File))
-                    {
-                        var res = await os.FileOperations.DownloadFileAsync("local" , commands.File, localPath);
-
-                        //downloading failed
-                        if (!res)
-                        {
-                            var error = new ErrorMessage($"The requested file ({commands.File}) was not found on Octoprint").ToString();
-                            var errorBytes = Encoding.ASCII.GetBytes(error);
-                            await webSocket.SendAsync(new ArraySegment<byte>(errorBytes, 0, error.Length), WebSocketMessageType.Text, true, CancellationToken.None);
-                        }
-                        else
-                        {
-                            commands.File = localPath;
-                            await prusaSlicerBroker.SliceAsync(commands);
-                        }
-
-                    }
-                    // use the local file on the disk
-                    else
-                    {
-                        commands.File = localPath;
-                        await prusaSlicerBroker.SliceAsync(commands);
-                    }
-                }
-
-                result = await webSocket.ReceiveAsync(new ArraySegment<byte>(buffer), CancellationToken.None);
             }
 
-            await webSocket.CloseAsync(result.CloseStatus.Value, result.CloseStatusDescription, CancellationToken.None);
+            await webSocket.CloseAsync(WebSocketCloseStatus.NormalClosure, string.Empty, CancellationToken.None);
         }
 
-        private List<string> GetConfigFileNames()
+        private async Task HandleWebSocketDataAsync(WebSocket webSocket, string data)
         {
-            var ret = new List<string>();
+            PrusaSlicerCLICommands commands;
 
-            foreach (var path in Directory.GetFiles(SlicingConfigPath))
+            try
             {
-                ret.Add(Path.GetFileName(path));
+                //convert json to object
+                commands = JsonSerializer.Deserialize<PrusaSlicerCLICommands>(data, new JsonSerializerOptions() { IgnoreNullValues = true });
             }
-            return ret;
+            catch (Exception)
+            {
+                await SendErrorMessageForInvalidCommandsAsync(webSocket);
+                return;
+            }
+
+            if (!commands.isValid())
+            {
+                await SendErrorMessageForInvalidCommandsAsync(webSocket);
+                return;
+            }
+
+            // Ouput folder and config file path. These parameters need to be overwritten.
+            commands.Output = GCodePath;
+            if (!SetSlicingProfilPath(commands))
+            {
+                await SendErrorMessageForInvalidProfile(webSocket);
+                return;
+            }
+
+            await SendSlicingStartedAsync(webSocket);
+
+            var prusaSlicerBroker = new PrusaSlicerBroker(slicerPath);
+            prusaSlicerBroker.FileSliced += PrusaSlicerBroker_FileSliced(webSocket);
+            prusaSlicerBroker.DataReceived += async (sender, args) =>
+            {
+                await SendSlicingProgressMessageAsync(webSocket, args);
+            };
+
+            var fileUri = new Uri(commands.FileURI);
+            await DownloadModelAsync(fileUri);
+
+            var localPath = Path.Combine(ModelDownloadPath, fileUri.Segments[^1]);
+
+            // use the local file on the disk
+            commands.File = localPath;
+            await prusaSlicerBroker.SliceAsync(commands);
+        }
+
+        private async Task<bool> DownloadModelAsync(Uri localtion)
+        {
+            using (WebClient webclient = new WebClient())
+            {
+                try
+                {
+                    await webclient.DownloadFileTaskAsync(localtion, Path.Combine(ModelDownloadPath, localtion.Segments[^1]));
+                }
+                catch (Exception e)
+                {
+                    return false;
+                }
+                return true;
+            }
+        }
+
+        private bool SetSlicingProfilPath(PrusaSlicerCLICommands commands)
+        {
+            if (commands.LoadConfigFile != null)
+            {
+                var configFilePath = Path.Combine(SlicingConfigPath, commands.LoadConfigFile);
+                if (File.Exists(configFilePath))
+                {
+                    commands.LoadConfigFile = configFilePath;
+                    return true;
+                }
+                else
+                {
+                    return false;
+                }
+            }
+            return true;
         }
 
         private EventHandler<FileSlicedArgs> PrusaSlicerBroker_FileSliced(WebSocket websocket)
@@ -312,37 +236,80 @@ namespace SlicerConnector
             {
                 if (e.Success)
                 {
-                    await UploadGCodeAsync(e.SlicedFilePath);
-
-                    var _websocket = websocket;
-                    var gcodeAnalyser = new GcodeAnalyser();
-                    gcodeAnalyser.MeshGenrerated += GcodeAnalyser_MeshGenrerated(_websocket, Path.GetFileNameWithoutExtension(e.SlicedFilePath));
-                    gcodeAnalyser.GenerateMeshFromGcode(e.SlicedFilePath, MeshesPath);
-                   
+                    await SendLinkToGCodeAsync(websocket, e.SlicedFilePath);
+                    
+                    //trigger webhocks
                 }
             };
-
             return new EventHandler<FileSlicedArgs>(action);
         }
 
-
-        private EventHandler<bool> GcodeAnalyser_MeshGenrerated(WebSocket websocket, string fileName)
+        #region Websocket Send methods
+        private static async Task SendSlicingProgressMessageAsync(WebSocket webSocket, DataReceivedEventArgs args)
         {
-            Action<object, bool> action = (sender, e) =>
-            {
-                var _websocket = websocket;
-                var _fileName = fileName;
-                var args = new FileSlicedMessage(new FileSlicedMessageArgs() { 
-                    File = ("/api/Download/" + _fileName).ToString(), 
-                    FilamentLength= (sender as GcodeAnalyser).FilamentLegth, 
-                    PrintTime = (sender as GcodeAnalyser).PrintingTime }).ToString();
-
-                var tmp = Encoding.ASCII.GetBytes(args);
-
-                _websocket.SendAsync(new ArraySegment<byte>(tmp, 0, args.Length), WebSocketMessageType.Text, true, CancellationToken.None);
-            };
-
-            return new EventHandler<bool>(action);
+            var slicingProgressMessage = new SlicingProgressMessage(args.Data).ToString();
+            var slicingProgressMessageBytes = Encoding.ASCII.GetBytes(slicingProgressMessage);
+            await webSocket.SendAsync(new ArraySegment<byte>(slicingProgressMessageBytes, 0, slicingProgressMessage.Length), WebSocketMessageType.Text, true, CancellationToken.None);
         }
+
+        private async Task SendSlicingStartedAsync(WebSocket webSocket)
+        {
+            var slicingStartedMessage = new ProgressMessage(ProgressState.Started).ToString();
+            var slicingStartedBytes = Encoding.ASCII.GetBytes(slicingStartedMessage);
+            await webSocket.SendAsync(new ArraySegment<byte>(slicingStartedBytes, 0, slicingStartedMessage.Length), WebSocketMessageType.Text, true, CancellationToken.None);
+        }
+
+        private async Task SendErrorMessageForInvalidProfile(WebSocket webSocket)
+        {
+            var errorMessage = new ErrorMessage(ErrorType.InvalidProfile, "Invalid profile selected").ToString();
+            var errorMessageBytes = Encoding.ASCII.GetBytes(errorMessage);
+            await webSocket.SendAsync(new ArraySegment<byte>(errorMessageBytes, 0, errorMessage.Length), WebSocketMessageType.Text, true, CancellationToken.None);
+        }
+
+        private static async Task SendWelcomeMessage(WebSocket webSocket)
+        {
+            var connectedMessage = new WelcomeMessage().ToString();
+            var connectedMessageBytes = Encoding.ASCII.GetBytes(connectedMessage);
+            await webSocket.SendAsync(new ArraySegment<byte>(connectedMessageBytes, 0, connectedMessage.Length), WebSocketMessageType.Text, true, CancellationToken.None);
+        }
+
+        private async Task SendSlicingProfils(WebSocket webSocket)
+        {
+            var profileList = new ProfileListMessage(GetConfigFileNames()).ToString();
+            var profileListBytes = Encoding.ASCII.GetBytes(profileList);
+            await webSocket.SendAsync(new ArraySegment<byte>(profileListBytes, 0, profileList.Length), WebSocketMessageType.Text, true, CancellationToken.None);
+        }
+
+        private static async Task SendErrorMessageForInvalidCommandsAsync(WebSocket webSocket)
+        {
+            var errorMessage = new ErrorMessage(ErrorType.CommandError, "Command could not be parsed into Prusa CLI Command Object. Check JSON format.").ToString();
+            var errorMessageBytes = Encoding.ASCII.GetBytes(errorMessage);
+            await webSocket.SendAsync(new ArraySegment<byte>(errorMessageBytes, 0, errorMessage.Length), WebSocketMessageType.Text, true, CancellationToken.None);
+        }
+
+        private static async Task SendLinkToGCodeAsync(WebSocket webSocket, string path)
+        {
+            //extract filename from path
+
+            var fileName = path.Substring(path.LastIndexOf('\\')+1);
+            var apiLink = "/api/gcode/" + fileName;
+
+            var gcodeLinkMessage = new GcodeLinkMessage(apiLink).ToString();
+            var gcodeLinkMessageBytes = Encoding.ASCII.GetBytes(gcodeLinkMessage);
+            await webSocket.SendAsync(new ArraySegment<byte>(gcodeLinkMessageBytes, 0, gcodeLinkMessage.Length), WebSocketMessageType.Text, true, CancellationToken.None);
+        }
+
+        #endregion
+
+        private List<string> GetConfigFileNames()
+        {
+            var ret = new List<string>();
+            foreach (var path in Directory.GetFiles(SlicingConfigPath))
+            {
+                ret.Add(Path.GetFileName(path));
+            }
+            return ret;
+        }
+
     }
 }

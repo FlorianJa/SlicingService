@@ -49,16 +49,67 @@ namespace SlicerConnector
         }
     }
 
-
-    public class ErrorMessage : JsonMessage<string>
+    public enum ProgressState
     {
-        public ErrorMessage(string payload)
+        Started
+    }
+
+    public class ProgressMessage : JsonMessage<ProgressState>
+    {
+        public ProgressMessage(ProgressState state)
         {
-            MessageType = "Error";
-            Payload = payload;
+            MessageType = "Progress";
+            Payload = state;
         }
     }
 
+
+
+    public enum ErrorType
+    {
+        CommandError,
+        FileNotFound,
+        InvalidProfile
+    }
+
+    [Serializable]
+    public class ErrorMessagePayload
+    {
+        public ErrorType ErrorType { get; set; }
+        public string Message { get; set; }
+
+        private ErrorMessagePayload() { }
+
+        public ErrorMessagePayload(ErrorType errorType, string message)
+        {
+            ErrorType = errorType;
+            Message = message;
+        }
+
+        public override string ToString()
+        {
+            return JsonSerializer.Serialize(this);
+        }
+    }
+
+    
+
+    public class ErrorMessage : JsonMessage<ErrorMessagePayload>
+    {
+        public ErrorMessage(ErrorType errorType, string message)
+        {
+            MessageType = "Error";
+            Payload = new ErrorMessagePayload(errorType, message);
+        }
+    }
+    public class GcodeLinkMessage : JsonMessage<string>
+    {
+        public GcodeLinkMessage(string link)
+        {
+            MessageType = "GCodeAPILink";
+            Payload = link;
+        }
+    }
     public class ProfileListMessage : JsonMessage<List<string>>
     {
         public ProfileListMessage(List<string> payload)
@@ -67,4 +118,14 @@ namespace SlicerConnector
             Payload = payload;
         }
     }
+
+    public class WelcomeMessage : JsonMessage<string>
+    {
+        public WelcomeMessage()
+        {
+            MessageType = "Connected";
+            Payload = "connected";
+        }
+    }
+    
 }

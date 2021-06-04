@@ -13,7 +13,13 @@ namespace SlicingBroker
     {
         public static PrusaSlicerCLICommands Default { get { return new PrusaSlicerCLICommands() { ExportGCode = true, SupportMaterial = false, LayerHeight = 0.2f, FillDensity = 0.5f, GcodeComments = true, Loglevel = 3, FillPattern = "line" }; } }
 
-        #region Properties
+        #region File location
+
+        public string FileURI { get; set; }
+
+        #endregion
+
+        #region CLI Commands
         [CLICommand("--raft-layers")]
         public int? Raft { get; set; }
 
@@ -94,10 +100,12 @@ namespace SlicingBroker
         public bool isValid()
         {
 
-            if (String.IsNullOrEmpty(File))
-                return false;
+            //if (String.IsNullOrEmpty(File))
+            //    return false;
 
-#if !DEBUG
+            if (FileURI == null)
+                return false;
+            
             if (!FillDensity.HasValue)
                 return false;
             
@@ -114,7 +122,7 @@ namespace SlicingBroker
                 return false;
             if (Center!=null &&(Center.X < 0f || Center.Y < 0f))
                 return false;
-#endif
+
             return true;
         }
 
