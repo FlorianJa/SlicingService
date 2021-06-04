@@ -6,9 +6,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\GcodeToMesh\GcodeToMesh.csproj" />
-    <ProjectReference Include="..\OctoPrintLib\OctoPrintLib.csproj" />
-    <ProjectReference Include="..\SlicingBroker\SlicingBroker.csproj" />
+    <ProjectReference Include="..\SlicingBroker\SlicingCLI.csproj" />
   </ItemGroup>
 
 
