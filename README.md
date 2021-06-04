@@ -1,4 +1,4 @@
-# SlicerConnector
+# Slicing Service
  A software application for controllling connected 3D printers along with Octoprint, It includes features for tracking files and printers on Octoprintslicing, slicing 3d models and creating their meshes from the Gcode.
 The application has two main functionalities. Firstly, It is used to interact with Octoprint servers, listen to it's event and deal with it accordingly, downloading and uploading files, slicing models and controling the printing process. Secondly, it also listens for incoming requests on a websocket, using the websocket you can choose the model you want to slice and configure the slicing parameters.
 
