@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace SlicingBroker
+namespace SlicingCLI
 {
     public class FileSlicedArgs : EventArgs
     {

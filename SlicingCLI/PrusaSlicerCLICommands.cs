@@ -7,7 +7,7 @@ using System.Text;
 using System.Globalization;
 using System.Runtime.CompilerServices;
 
-namespace SlicingBroker
+namespace SlicingCLI
 {
     public class PrusaSlicerCLICommands
     {

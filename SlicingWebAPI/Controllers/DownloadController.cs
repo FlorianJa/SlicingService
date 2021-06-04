@@ -1,26 +1,28 @@
-﻿using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.Configuration;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Configuration;
 
-namespace SlicerConnector.Controllers
+// For more information on enabling Web API for empty projects, visit https://go.microsoft.com/fwlink/?LinkID=397860
+
+namespace SlicingWebAPI.Controllers
 {
+
     [Route("api/[controller]")]
     [ApiController]
-    public class GCodeController : Controller
+    public class DownloadController : ControllerBase
     {
         private string DataPath;
         // for controlling the connection with Hololens application
-        public GCodeController(IConfiguration configuration)
+        public DownloadController(IConfiguration configuration)
         {
             var tmp = configuration as ConfigurationRoot;
 
             var BasePath = configuration.GetValue<string>("OctoPrint:BasePath");
-            DataPath = Path.Combine(BasePath, "GCode");
+            DataPath = Path.Combine(BasePath, "Meshes");
             if (!Directory.Exists(DataPath))
                 Directory.CreateDirectory(DataPath);
         }
@@ -29,19 +31,13 @@ namespace SlicerConnector.Controllers
         [HttpGet]
         public IEnumerable<string> Get()
         {
-            var fileNames = new List<string>();
-            var filesFullPath = System.IO.Directory.GetFiles(DataPath, "*.gcode");
-
-            foreach (string file in filesFullPath)
-                fileNames.Add(Path.GetFileName(file));
-
-            return fileNames;
+            return System.IO.Directory.GetFiles(DataPath, "*.zip");
         }
 
         [HttpGet("{filename}")]
         public async Task<IActionResult> DownloadFile(string filename)
         {
-            var filePath = Path.Combine(DataPath, filename);
+            var filePath = Path.Combine(DataPath, filename + ".zip");
             if (CheckFileAvailability(filename, filePath, out string message))
             {
                 var memory = new MemoryStream();
@@ -50,7 +46,7 @@ namespace SlicerConnector.Controllers
                     await stream.CopyToAsync(memory);
                 }
                 memory.Position = 0;
-                return File(memory, "application/gcode", Path.GetFileName(filePath));
+                return File(memory, "application/zip", Path.GetFileName(filePath));
             }
 
             else
@@ -64,13 +60,13 @@ namespace SlicerConnector.Controllers
             message = "";
             if (String.IsNullOrWhiteSpace(filename))
             {
-                message = "400. filename not present";
+                message = "filename not present";
                 return false;
             }
 
             if (!System.IO.File.Exists(filepath))
             {
-                message = "404. The requested file was not found";
+                message = "The requested file was not found";
                 return false;
             }
 

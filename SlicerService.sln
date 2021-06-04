@@ -3,9 +3,9 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 16
 VisualStudioVersion = 16.0.29613.14
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "SlicerWebAPI", "SlicerConnector\SlicerWebAPI.csproj", "{71EB6B86-ADA5-4CE2-96AF-6B3E83633110}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "SlicingWebAPI", "SlicingWebAPI\SlicingWebAPI.csproj", "{71EB6B86-ADA5-4CE2-96AF-6B3E83633110}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "SlicingBroker", "SlicingBroker\SlicingBroker.csproj", "{2691A5A3-7F30-44AC-BBFD-8280EB3A3007}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "SlicingCLI", "SlicingCLI\SlicingCLI.csproj", "{2691A5A3-7F30-44AC-BBFD-8280EB3A3007}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

@@ -361,3 +361,9 @@ SlicerConnector/Profiles/
 SlicerConnector/Data/GCode/
 
 SlicerConnector/Data/Models/
+
+SlicingWebAPI/Data/GCode/
+
+SlicingWebAPI/Data/Models/
+
+SlicingWebAPI/Profiles/

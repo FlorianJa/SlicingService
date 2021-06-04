@@ -18,9 +18,9 @@ using Microsoft.Extensions.Configuration.CommandLine;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
-using SlicingBroker;
+using SlicingCLI;
 
-namespace SlicerConnector
+namespace SlicingWebAPI
 {
     public class Startup
     {

@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Threading.Tasks;
 
-namespace SlicingBroker
+namespace SlicingCLI
 {
     public interface ISlicerBroker
     {

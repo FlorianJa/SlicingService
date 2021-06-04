@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Text;
 
-namespace SlicingBroker
+namespace SlicingCLI
 {
     [System.AttributeUsage(System.AttributeTargets.Property)]   
     public class CLICommand : System.Attribute
