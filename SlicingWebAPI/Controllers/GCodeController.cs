@@ -19,7 +19,7 @@ namespace SlicingWebAPI.Controllers
         {
             var tmp = configuration as ConfigurationRoot;
 
-            var BasePath = configuration.GetValue<string>("OctoPrint:BasePath");
+            var BasePath = configuration.GetValue<string>("BasePath");
             DataPath = Path.Combine(BasePath, "GCode");
             if (!Directory.Exists(DataPath))
                 Directory.CreateDirectory(DataPath);
