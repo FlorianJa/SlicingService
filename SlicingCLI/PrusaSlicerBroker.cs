@@ -1,7 +1,9 @@
 using System;
 using System.Diagnostics;
+using System.Globalization;
 using System.IO;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -59,7 +61,25 @@ namespace SlicingCLI
                         FileSlicedArgs eventArgs;
                         if (CheckFileSliced(commands, errorsReceived))
                         {
-                            eventArgs = new  FileSlicedArgs(true, GCodePath);
+                            int days = 0, hours = 0, minutes = 0;
+                            float usedFilament = 0f;
+                            Regex rx = new Regex(@"(?<LayerHeight>\d*[.]\d+).*_(?:(?:(?<Days>\d*)d)?(?<Hours>\d+)h)?(?<Minutes>\d+)m_(?<UsedFilament>\d*[.]\d*)", RegexOptions.Compiled); //get layerheight and print duration in day, hours and minutes
+
+                            var match = rx.Match(GCodePath);
+
+                            var layerHeight = match.Groups["LayerHeight"].Value;
+                            var daysString = match.Groups["Days"].Value;
+                            var hoursString = match.Groups["Hours"].Value;
+                            var minutesString = match.Groups["Minutes"].Value;
+                            var usedFilamentString = match.Groups["UsedFilament"].Value;
+
+                            if (!string.IsNullOrEmpty(daysString)) days = Int32.Parse(daysString);
+                            if (!string.IsNullOrEmpty(hoursString)) hours = Int32.Parse(hoursString);
+                            if (!string.IsNullOrEmpty(minutesString)) minutes = Int32.Parse(minutesString);
+                            if (!string.IsNullOrEmpty(usedFilamentString)) usedFilament = float.Parse(usedFilamentString, CultureInfo.InvariantCulture);
+
+
+                            eventArgs = new FileSlicedArgs(true, GCodePath, days, hours, minutes, usedFilament);
                         }
                         else
                         {

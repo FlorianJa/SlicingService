@@ -1,4 +1,5 @@
-﻿using System;
+﻿using SlicingCLI;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text.Json;
@@ -102,12 +103,12 @@ namespace SlicingWebAPI
             Payload = new ErrorMessagePayload(errorType, message);
         }
     }
-    public class GcodeLinkMessage : JsonMessage<string>
+    public class SlicingCompletedMessage : JsonMessage<FileSlicedArgs>
     {
-        public GcodeLinkMessage(string link)
+        public SlicingCompletedMessage(FileSlicedArgs message)
         {
-            MessageType = "GCodeAPILink";
-            Payload = link;
+            MessageType = "SlicingCompleted";
+            Payload = message;
         }
     }
     public class ProfileListMessage : JsonMessage<List<string>>

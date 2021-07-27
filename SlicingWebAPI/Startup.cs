@@ -233,7 +233,7 @@ namespace SlicingWebAPI
             {
                 if (e.Success)
                 {
-                    await SendLinkToGCodeAsync(websocket, e.SlicedFilePath);
+                    await SendFileScliceCompledtedMessage(websocket, e);
                     
                     //trigger webhocks
                 }
@@ -284,14 +284,16 @@ namespace SlicingWebAPI
             await webSocket.SendAsync(new ArraySegment<byte>(errorMessageBytes, 0, errorMessage.Length), WebSocketMessageType.Text, true, CancellationToken.None);
         }
 
-        private static async Task SendLinkToGCodeAsync(WebSocket webSocket, string path)
+        private static async Task SendFileScliceCompledtedMessage(WebSocket webSocket, FileSlicedArgs fileSlicedArgs)
         {
             //extract filename from path
 
-            var fileName = path.Substring(path.LastIndexOf('\\')+1);
+            var fileName = fileSlicedArgs.SlicedFilePath.Substring(fileSlicedArgs.SlicedFilePath.LastIndexOf('\\')+1);
             var apiLink = "/api/gcode/" + fileName;
 
-            var gcodeLinkMessage = new GcodeLinkMessage(apiLink).ToString();
+            fileSlicedArgs.SlicedFilePath = apiLink;
+
+            var gcodeLinkMessage = new SlicingCompletedMessage(fileSlicedArgs).ToString();
             var gcodeLinkMessageBytes = Encoding.ASCII.GetBytes(gcodeLinkMessage);
             await webSocket.SendAsync(new ArraySegment<byte>(gcodeLinkMessageBytes, 0, gcodeLinkMessage.Length), WebSocketMessageType.Text, true, CancellationToken.None);
         }
