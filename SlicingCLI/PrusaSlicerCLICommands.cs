@@ -16,6 +16,7 @@ namespace SlicingCLI
         #region File location
 
         public string FileURI { get; set; }
+        public string FileName { get; set; }
 
         #endregion
 

@@ -184,22 +184,22 @@ namespace SlicingWebAPI
             };
 
             var fileUri = new Uri(commands.FileURI);
-            await DownloadModelAsync(fileUri);
+            await DownloadModelAsync(fileUri, commands.FileName);
 
-            var localPath = Path.Combine(ModelDownloadPath, fileUri.Segments[^1]);
+            var localPath = Path.Combine(ModelDownloadPath, commands.FileName);
 
             // use the local file on the disk
             commands.File = localPath;
             await prusaSlicerBroker.SliceAsync(commands);
         }
 
-        private async Task<bool> DownloadModelAsync(Uri localtion)
+        private async Task<bool> DownloadModelAsync(Uri localtion, string fileName)
         {
             using (WebClient webclient = new WebClient())
             {
                 try
                 {
-                    await webclient.DownloadFileTaskAsync(localtion, Path.Combine(ModelDownloadPath, localtion.Segments[^1]));
+                    await webclient.DownloadFileTaskAsync(localtion, Path.Combine(ModelDownloadPath, fileName));
                 }
                 catch (Exception e)
                 {
