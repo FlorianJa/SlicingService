@@ -104,25 +104,26 @@ namespace SlicingCLI
             //if (String.IsNullOrEmpty(File))
             //    return false;
 
-            if (FileURI == null)
-                return false;
+            //if (FileURI == null)
+            //    return false;
             
-            if (!FillDensity.HasValue)
-                return false;
+            //ToDo: check if config file is present. 
+            //if (!FillDensity.HasValue) 
+            //    return false;
             
-            if (FillDensity < 0f || FillDensity > 1f)
-                return false;
+            //if (FillDensity < 0f || FillDensity > 1f)
+            //    return false;
 
-            if (!LayerHeight.HasValue)
-                return false;
+            //if (!LayerHeight.HasValue)
+            //    return false;
 
-            if (LayerHeight < 0.05f || LayerHeight > 0.3f)
-                return false;
+            //if (LayerHeight < 0.05f || LayerHeight > 0.3f)
+            //    return false;
 
-            if (AlignXY!=null && (AlignXY.X < 0f || AlignXY.Y < 0f))
-                return false;
-            if (Center!=null &&(Center.X < 0f || Center.Y < 0f))
-                return false;
+            //if (AlignXY!=null && (AlignXY.X < 0f || AlignXY.Y < 0f))
+            //    return false;
+            //if (Center!=null &&(Center.X < 0f || Center.Y < 0f))
+            //    return false;
 
             return true;
         }
