@@ -52,50 +52,40 @@ namespace SlicingServiceAPI
 
         private async Task ParseInput(string data)
         {
-            PrusaSlicerCLICommands commands = PrusaSlicerCLICommands.Default;
-            commands.FileURI = "https://github.com/CreativeTools/3DBenchy/raw/master/Single-part/3DBenchy.stl";
-
-            //try
-            //{
-            //    //convert json to object
-            //    commands = JsonSerializer.Deserialize<PrusaSlicerCLICommands>(data, new JsonSerializerOptions() { IgnoreNullValues = true });
-            //}
-            //catch (Exception)
-            //{
-            //    await SendErrorMessageForInvalidCommandsAsync();
-            //    return;
-            //}
-
-            //if (!commands.isValid())
-            //{
-            //    await SendErrorMessageForInvalidCommandsAsync();
-            //    return;
-            //}
-
+            PrusaSlicerCLICommands commands;// = PrusaSlicerCLICommands.Default;
+            //commands.FileURI = "https://github.com/CreativeTools/3DBenchy/raw/master/Single-part/3DBenchy.stl";
 
             try
             {
-                await SendSlicingStartedAsync();
+                //convert json to object
+                commands = JsonSerializer.Deserialize<PrusaSlicerCLICommands>(data, new JsonSerializerOptions() { IgnoreNullValues = true });
+            }
+            catch (Exception)
+            {
+                await SendErrorMessageForInvalidCommandsAsync();
+                return;
+            }
 
-                var slicingResult = await _slicingService.SliceAsync(commands);
+            if (!commands.isValid())
+            {
+                await SendErrorMessageForInvalidCommandsAsync();
+                return;
+            }
 
-                await SendFileScliceCompledtedMessage(slicingResult);
-
+            await SendSlicingStartedAsync();
+            FileSlicedArgs slicingResult;
+            try
+            {
+                slicingResult = await _slicingService.SliceAsync(commands);
             }
             catch (FileNotFoundException e)
             {
                 await SendErrorMessageForInvalidProfile();
+                return;
             }
-            
 
-            
-            //var prusaSlicerBroker = new PrusaSlicerBroker(slicerPath);
-            //prusaSlicerBroker.FileSliced += PrusaSlicerBroker_FileSliced(webSocket);
-            //prusaSlicerBroker.DataReceived += async (sender, args) =>
-            //{
-            //    await SendSlicingProgressMessageAsync(webSocket, args);
-            //};
-            //await prusaSlicerBroker.SliceAsync(commands);
+            await SendFileScliceCompledtedMessage(slicingResult);
+
         }
 
         private async Task SendWelcomeMessage()

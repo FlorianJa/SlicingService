@@ -14,7 +14,7 @@ namespace SlicingServiceAPI.Controllers
         }
 
         [HttpGet("/ws")]
-        //[Authorize]
+        [Authorize]
         public async Task Get()
         {
             if (HttpContext.WebSockets.IsWebSocketRequest)

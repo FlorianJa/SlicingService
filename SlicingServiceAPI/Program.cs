@@ -15,10 +15,9 @@ var jwtOptions = builder.Configuration.GetSection("JwtBearer").Get<SlicingServic
 
 var basePath = builder.Configuration.GetValue<string>("BasePath");
 var slicerPath = builder.Configuration.GetValue<string>("Slicer:Path");
-var slicingConfigPath = builder.Configuration.GetValue<string>("Slicer:ConfigPath");
-
 var modelDownloadPath = Path.Combine(basePath, "Models");
 var gCodePath = Path.Combine(basePath, "GCode");
+var slicingConfigPath = Path.Combine(basePath, "Profiles");
 
 if (!Directory.Exists(gCodePath))
 {
