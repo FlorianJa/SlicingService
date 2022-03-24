@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Logging;
+using SlicerCLIWrapper;
 using SlicingServiceAPI;
 
 const string _roleClaimType = "role";
@@ -12,26 +13,26 @@ var builder = WebApplication.CreateBuilder(args);
 var jwtOptions = builder.Configuration.GetSection("JwtBearer").Get<SlicingServiceAPI.JwtBearerOptions>();
 
 
-var BasePath = builder.Configuration.GetValue<string>("BasePath");
+var basePath = builder.Configuration.GetValue<string>("BasePath");
 var slicerPath = builder.Configuration.GetValue<string>("Slicer:Path");
-var SlicingConfigPath = builder.Configuration.GetValue<string>("Slicer:ConfigPath");
+var slicingConfigPath = builder.Configuration.GetValue<string>("Slicer:ConfigPath");
 
-var ModelDownloadPath = Path.Combine(BasePath, "Models");
-var GCodePath = Path.Combine(BasePath, "GCode");
+var modelDownloadPath = Path.Combine(basePath, "Models");
+var gCodePath = Path.Combine(basePath, "GCode");
 
-if (!Directory.Exists(GCodePath))
+if (!Directory.Exists(gCodePath))
 {
-    Directory.CreateDirectory(GCodePath);
+    Directory.CreateDirectory(gCodePath);
 }
 
-if (!Directory.Exists(ModelDownloadPath))
+if (!Directory.Exists(modelDownloadPath))
 {
-    Directory.CreateDirectory(ModelDownloadPath);
+    Directory.CreateDirectory(modelDownloadPath);
 }
 
-if (!Directory.Exists(SlicingConfigPath))
+if (!Directory.Exists(slicingConfigPath))
 {
-    Directory.CreateDirectory(SlicingConfigPath);
+    Directory.CreateDirectory(slicingConfigPath);
 }
 
 
@@ -42,7 +43,7 @@ builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
-builder.Services.AddTransient<SlicingService>(s => new SlicingService(ModelDownloadPath, GCodePath, SlicingConfigPath));
+builder.Services.AddTransient<SlicingService>(s => new SlicingService(modelDownloadPath, gCodePath, slicingConfigPath, new Slicer(slicerPath)));
 
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
 .AddJwtBearer(options =>

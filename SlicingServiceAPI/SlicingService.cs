@@ -1,4 +1,5 @@
-﻿using SlicingServiceCommon;
+﻿using SlicerCLIWrapper;
+using SlicingServiceCommon;
 
 namespace SlicingServiceAPI
 {
@@ -7,12 +8,21 @@ namespace SlicingServiceAPI
         private readonly String ModelDownloadPath;
         private readonly String GCodePath;
         private readonly String SlicingConfigPath;
+        private readonly Slicer slicer;
 
-        public SlicingService(string modelDownloadPath, string gCodePath, string slicingConfigPath)
+        public event EventHandler<string>? output;
+
+        public SlicingService(string modelDownloadPath, string gCodePath, string slicingConfigPath, Slicer slicer)
         {
             ModelDownloadPath = modelDownloadPath;
             GCodePath = gCodePath;
             SlicingConfigPath = slicingConfigPath;
+            this.slicer = slicer;
+
+            slicer.DataReceived += (s, e) =>
+            {
+                output?.Invoke(s, e);
+            };
         }
 
         public List<string> GetConfigFileNames()
@@ -28,7 +38,7 @@ namespace SlicingServiceAPI
         public async Task<FileSlicedArgs> SliceAsync(PrusaSlicerCLICommands commands)
         {
             await PrepareSlicing(commands);
-            return null;
+            return await slicer.SliceAsync(commands);
         }
 
         public async Task PrepareSlicing(PrusaSlicerCLICommands commands)
@@ -38,6 +48,10 @@ namespace SlicingServiceAPI
             SetSlicingProfilPath(commands);
 
             var fileUri = new Uri(commands.FileURI);
+            if(commands.FileName == null)
+            {
+                commands.FileName = fileUri.Segments[^1];
+            }
             var localFullPath = Path.Combine(ModelDownloadPath, commands.FileName);
             await DownloadHelper.DownloadModelAsync(fileUri, localFullPath);
             

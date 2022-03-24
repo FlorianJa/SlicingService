@@ -14,13 +14,13 @@ namespace SlicingServiceAPI.Controllers
         }
 
         [HttpGet("/ws")]
-        [Authorize]
+        //[Authorize]
         public async Task Get()
         {
             if (HttpContext.WebSockets.IsWebSocketRequest)
             {
                 using var webSocket = await HttpContext.WebSockets.AcceptWebSocketAsync();
-                await new WebSocketHandler(_slicingService).Handle(webSocket);
+                await new WebSocketHandler(_slicingService, webSocket).Handle();
             }
             else
             {

@@ -11,7 +11,7 @@ namespace SlicingServiceAPI
                 try
                 {
                     var response = await client.GetAsync(adress);
-                    using (var fs = new FileStream(localFullFileName, FileMode.CreateNew))
+                    using (var fs = new FileStream(localFullFileName, FileMode.OpenOrCreate))
                     {
                         await response.Content.CopyToAsync(fs);
                     }

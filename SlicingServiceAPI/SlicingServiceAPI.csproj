@@ -15,6 +15,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\SlicerCLIWrapper\SlicerCLIWrapper.csproj" />
     <ProjectReference Include="..\SlicingServiceCommon\SlicingServiceCommon.csproj" />
   </ItemGroup>
 
