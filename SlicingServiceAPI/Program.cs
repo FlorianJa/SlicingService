@@ -11,6 +11,30 @@ var builder = WebApplication.CreateBuilder(args);
 
 var jwtOptions = builder.Configuration.GetSection("JwtBearer").Get<SlicingServiceAPI.JwtBearerOptions>();
 
+
+var BasePath = builder.Configuration.GetValue<string>("BasePath");
+var slicerPath = builder.Configuration.GetValue<string>("Slicer:Path");
+var SlicingConfigPath = builder.Configuration.GetValue<string>("Slicer:ConfigPath");
+
+var ModelDownloadPath = Path.Combine(BasePath, "Models");
+var GCodePath = Path.Combine(BasePath, "GCode");
+
+if (!Directory.Exists(GCodePath))
+{
+    Directory.CreateDirectory(GCodePath);
+}
+
+if (!Directory.Exists(ModelDownloadPath))
+{
+    Directory.CreateDirectory(ModelDownloadPath);
+}
+
+if (!Directory.Exists(SlicingConfigPath))
+{
+    Directory.CreateDirectory(SlicingConfigPath);
+}
+
+
 // Add services to the container.
 
 builder.Services.AddControllers();
@@ -18,6 +42,7 @@ builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
+builder.Services.AddTransient<SlicingService>(s => new SlicingService(ModelDownloadPath, GCodePath, SlicingConfigPath));
 
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
 .AddJwtBearer(options =>
