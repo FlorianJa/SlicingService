@@ -1,0 +1,28 @@
+name: Docker build and publish
+
+on:
+  push:
+    branches: [ main ]
+    paths-ignore:
+      - '**/README.md'
+
+env:
+  DOCKER_USER: ${{secrets.DOCKER_USER}}
+  DOCKER_PASSWORD: ${{secrets.DOCKER_TOKEN}}
+  IMAGE_NAME: ${{secrets.IMAGE_NAME}}
+  
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v2
+    
+    - name: docker login
+      run: docker login -u $DOCKER_USER -p $DOCKER_PASSWORD 
+      
+    - name: Build the Docker image
+      run: docker build . --file SlicingServiceAPI/dockerfile --tag $IMAGE_NAME
+      
+    - name: Docker Push
+      run: docker push $IMAGE_NAME
