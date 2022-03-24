@@ -355,3 +355,14 @@ MigrationBackup/
 # ignore app.json file 
 SlicerConnector/appsettings.json
 
+
+SlicerConnector/Profiles/
+
+SlicerConnector/Data/GCode/
+
+SlicerConnector/Data/Models/
+
+SlicingWebAPI/Data/GCode/
+
+SlicingWebAPI/Data/Models/
+
