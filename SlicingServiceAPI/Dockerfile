@@ -32,6 +32,6 @@ RUN dotnet publish "SlicingServiceAPI.csproj" -c Release -o /app/publish
 FROM base AS final
 
 WORKDIR /app
-RUN dotnet dev-certs https
+#RUN dotnet dev-certs https
 COPY --from=publish /app/publish .
 ENTRYPOINT ["dotnet", "SlicingServiceAPI.dll"]

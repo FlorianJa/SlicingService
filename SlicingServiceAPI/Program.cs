@@ -1,5 +1,7 @@
+using LettuceEncrypt;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Server.Kestrel.Https;
 using Microsoft.IdentityModel.Logging;
 using SlicerCLIWrapper;
 using SlicingServiceAPI;
@@ -34,6 +36,14 @@ if (!Directory.Exists(slicingConfigPath))
     Directory.CreateDirectory(slicingConfigPath);
 }
 
+
+if (builder.Environment.IsProduction())
+{
+    var certPassword = builder.Configuration.GetValue<string>("CertPassword");
+
+    builder.Services.AddLettuceEncrypt()
+        .PersistDataToDirectory(new DirectoryInfo(Path.Combine(basePath, "Certs")), certPassword);
+}
 
 // Add services to the container.
 
