@@ -1,21 +1,7 @@
 # Slicing Service
-This application provides a web interface (websocket) to slice a given stl file. The resulting gcode can be downloaded via a REST API.
 
 
-## Installation 
-To get your development environment running you need to:
-- Install a supported slicer software, currently PrusaSlicer is only supported. [Download PrusaSlicer](https://www.prusa3d.com/prusaslicer/).
-- Install a .Net core 3.0 or higer development kit [Download .Netcore](https://dotnet.microsoft.com/download/dotnet-core/3.0).
-
-## How to use
-- Fork the application, make sure everything builds and there is no errors on your machine. 
-- Open the appsettings.json file and change the following:
-
-|Tag Name        |Property to change            |What to do                   |
-|----------------|------------------------------|-----------------------------|
-|Slicer          |`"Path"`                      |Put the path of the Prusa slicer console on your machine                      |
-|Slicer          |`"ConfigPath"`                |Put the path for additional config files (.ini). This path is optional        |
-|Kestrel         |`"Url"`                       |Put the URL/Port number that you want your websocket to be at                 |
+**WORLK IN PROGESS. README GETS AN UPDATE SOON!**
 
 
 ## JSON message structure for triggering slicing
