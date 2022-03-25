@@ -15,11 +15,11 @@ var builder = WebApplication.CreateBuilder(args);
 var jwtOptions = builder.Configuration.GetSection("JwtBearer").Get<SlicingServiceAPI.JwtBearerOptions>();
 
 
-var basePath = builder.Configuration.GetValue<string>("BasePath");
+var basePath = "data";
 var slicerPath = builder.Configuration.GetValue<string>("Slicer:Path");
-var modelDownloadPath = Path.Combine(basePath, "Models");
-var gCodePath = Path.Combine(basePath, "GCode");
-var slicingConfigPath = Path.Combine(basePath, "Profiles");
+var modelDownloadPath = Path.Combine(basePath, "models");
+var gCodePath = Path.Combine(basePath, "gCode");
+var slicingConfigPath = Path.Combine(basePath, "profiles");
 
 if (!Directory.Exists(gCodePath))
 {
@@ -42,7 +42,7 @@ if (builder.Environment.IsProduction())
     var certPassword = builder.Configuration.GetValue<string>("CertPassword");
 
     builder.Services.AddLettuceEncrypt()
-        .PersistDataToDirectory(new DirectoryInfo(Path.Combine(basePath, "Certs")), certPassword);
+        .PersistDataToDirectory(new DirectoryInfo(Path.Combine(basePath, "certs")), certPassword);
 }
 
 // Add services to the container.
